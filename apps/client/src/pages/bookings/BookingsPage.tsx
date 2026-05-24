@@ -4,6 +4,7 @@ import { CalendarDays, GraduationCap, Clock, XCircle } from 'lucide-react';
 import { bookingsApi } from '@/api/bookings.api';
 import { formatDateTime, getFullName } from '@/lib/utils';
 import type { BookingStatus } from '@/types';
+import { useToast } from '@/store/toast.store';
 
 const statusConfig: Record<BookingStatus, { label: string; classes: string }> = {
   PENDING: { label: 'Pending', classes: 'bg-yellow-100 text-yellow-700' },
@@ -14,6 +15,7 @@ const statusConfig: Record<BookingStatus, { label: string; classes: string }> = 
 
 export function BookingsPage() {
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const { data: bookings, isLoading, isError } = useQuery({
     queryKey: ['bookings'],
@@ -22,7 +24,11 @@ export function BookingsPage() {
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => bookingsApi.updateStatus(id, 'CANCELLED'),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bookings'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      toast.success('Booking cancelled.');
+    },
+    onError: () => toast.error('Failed to cancel booking. Please try again.'),
   });
 
   if (isLoading) {
@@ -125,10 +131,6 @@ export function BookingsPage() {
                     )}
                   </div>
                 </div>
-
-                {cancelMutation.isError && (
-                  <p className="mt-3 text-sm text-red-500">Something went wrong. Please try again.</p>
-                )}
               </div>
             );
           })}

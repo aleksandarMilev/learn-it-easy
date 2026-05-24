@@ -5,6 +5,7 @@ import { bookingsApi } from '@/api/bookings.api';
 import { formatDateTime, getFullName } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import type { BookingStatus } from '@/types';
+import { useToast } from '@/store/toast.store';
 
 const statusConfig: Record<BookingStatus, { label: string; classes: string }> = {
   PENDING: { label: 'Pending', classes: 'bg-yellow-100 text-yellow-700' },
@@ -17,6 +18,7 @@ export function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const { isTutor, isAdmin } = useAuth();
+  const toast = useToast();
 
   const { data: booking, isLoading, isError } = useQuery({
     queryKey: ['bookings', id],
@@ -26,7 +28,11 @@ export function BookingDetailPage() {
 
   const statusMutation = useMutation({
     mutationFn: (status: BookingStatus) => bookingsApi.updateStatus(id!, status),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bookings', id] }),
+    onSuccess: (_, status) => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', id] });
+      toast.success(status === 'CONFIRMED' ? 'Booking confirmed!' : 'Booking cancelled.');
+    },
+    onError: () => toast.error('Failed to update booking. Please try again.'),
   });
 
   if (isLoading) {
@@ -131,9 +137,6 @@ export function BookingDetailPage() {
                 Cancel
               </button>
             </div>
-            {statusMutation.isError && (
-              <p className="mt-2 text-sm text-red-500">Something went wrong. Please try again.</p>
-            )}
           </div>
         )}
       </div>

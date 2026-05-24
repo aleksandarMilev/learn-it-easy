@@ -13,6 +13,7 @@ import {
 import { notificationsApi } from '@/api/notifications.api';
 import { formatDateTime } from '@/lib/utils';
 import type { NotificationType } from '@/types';
+import { useToast } from '@/store/toast.store';
 
 type TypeConfig = {
   label: string;
@@ -56,6 +57,7 @@ const typeConfig: Record<NotificationType, TypeConfig> = {
 
 export function NotificationsPage() {
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const { data: notifications, isLoading, isError } = useQuery({
     queryKey: ['notifications'],
@@ -67,7 +69,9 @@ export function NotificationsPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['notifications'] });
       void queryClient.invalidateQueries({ queryKey: ['notifications', 'unread'] });
+      toast.info('Notification marked as read.');
     },
+    onError: () => toast.error('Failed to mark notification as read.'),
   });
 
   const deleteMutation = useMutation({
@@ -75,7 +79,9 @@ export function NotificationsPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['notifications'] });
       void queryClient.invalidateQueries({ queryKey: ['notifications', 'unread'] });
+      toast.info('Notification deleted.');
     },
+    onError: () => toast.error('Failed to delete notification.'),
   });
 
   if (isLoading) {
@@ -177,10 +183,6 @@ export function NotificationsPage() {
                     </button>
                   </div>
                 </div>
-
-                {(readMutation.isError || deleteMutation.isError) && (
-                  <p className="mt-3 text-sm text-red-500">Something went wrong. Please try again.</p>
-                )}
               </div>
             );
           })}

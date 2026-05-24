@@ -7,6 +7,7 @@ import { GraduationCap, CheckCircle2 } from 'lucide-react';
 import { authApi } from '@/api/auth.api';
 import { usersApi } from '@/api/users.api';
 import { useAuthStore } from '@/store/auth.store';
+import { useToast } from '@/store/toast.store';
 
 const schema = z.object({
   email: z.email('Invalid email'),
@@ -31,6 +32,7 @@ const features = [
 export function RegisterPage() {
   const navigate = useNavigate();
   const { setTokens, setUser } = useAuthStore();
+  const toast = useToast();
 
   const {
     register,
@@ -47,13 +49,14 @@ export function RegisterPage() {
       setTokens(data.accessToken, data.refreshToken);
       const user = await usersApi.getMe();
       setUser({ id: user.id, email: user.email, role: user.role });
+      toast.success('Account created successfully!');
       navigate('/dashboard');
     },
+    onError: () => toast.error('Registration failed. Email may already be in use.'),
   });
 
   return (
     <div className="flex min-h-screen">
-      {/* Branding panel */}
       <div className="hidden flex-col justify-between bg-indigo-600 p-12 lg:flex lg:w-5/12">
         <Link to="/" className="flex items-center gap-2 text-white">
           <GraduationCap className="h-8 w-8" />
@@ -80,9 +83,8 @@ export function RegisterPage() {
         <p className="text-xs text-indigo-400">© 2025 LearnItEasy. All rights reserved.</p>
       </div>
 
-      {/* Form panel */}
       <div className="flex flex-1 items-center justify-center bg-gray-50 px-6 py-12">
-        <div className="w-full max-w-md animate-fade-in-up">
+        <div className="animate-fade-in-up w-full max-w-md">
           <div className="mb-8">
             <div className="mb-5 flex items-center gap-2 lg:hidden">
               <GraduationCap className="h-6 w-6 text-indigo-600" />
@@ -99,11 +101,7 @@ export function RegisterPage() {
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">
                     First name
                   </label>
-                  <input
-                    {...register('firstName')}
-                    placeholder="Alex"
-                    className={inputClass}
-                  />
+                  <input {...register('firstName')} placeholder="Alex" className={inputClass} />
                   {errors.firstName && (
                     <p className="mt-1.5 text-xs text-red-500">{errors.firstName.message}</p>
                   )}
@@ -112,11 +110,7 @@ export function RegisterPage() {
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">
                     Last name
                   </label>
-                  <input
-                    {...register('lastName')}
-                    placeholder="Smith"
-                    className={inputClass}
-                  />
+                  <input {...register('lastName')} placeholder="Smith" className={inputClass} />
                   {errors.lastName && (
                     <p className="mt-1.5 text-xs text-red-500">{errors.lastName.message}</p>
                   )}
@@ -161,16 +155,10 @@ export function RegisterPage() {
                 </select>
               </div>
 
-              {mutation.isError && (
-                <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
-                  Registration failed. This email may already be in use.
-                </div>
-              )}
-
               <button
                 type="submit"
                 disabled={mutation.isPending}
-                className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {mutation.isPending ? 'Creating account...' : 'Create account'}
               </button>

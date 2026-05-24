@@ -11,6 +11,7 @@ import {
 import { useAuthStore } from '@/store/auth.store';
 import { authApi } from '@/api/auth.api';
 import { notificationsApi } from '@/api/notifications.api';
+import { useToast } from '@/store/toast.store';
 
 const navLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -23,12 +24,13 @@ export function Navbar() {
   const { user, refreshToken, logout, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
 
   const { data: unreadCount } = useQuery({
     queryKey: ['notifications', 'unread'],
     queryFn: notificationsApi.getUnreadCount,
     enabled: isAuthenticated,
-    refetchInterval: 30000,
+    refetchInterval: 30_000,
   });
 
   const handleLogout = async () => {
@@ -36,13 +38,12 @@ export function Navbar() {
       await authApi.logout(refreshToken).catch(() => {});
     }
     logout();
+    toast.info('You have been logged out');
     navigate('/login');
   };
 
   const isActive = (to: string) =>
-    to === '/dashboard'
-      ? location.pathname === to
-      : location.pathname.startsWith(to);
+    to === '/dashboard' ? location.pathname === to : location.pathname.startsWith(to);
 
   return (
     <nav className="border-b border-gray-200 bg-white shadow-sm">

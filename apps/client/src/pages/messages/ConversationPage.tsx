@@ -5,18 +5,24 @@ import { ArrowLeft, SendHorizonal } from 'lucide-react';
 import { messagingApi } from '@/api/messaging.api';
 import { useSocket } from '@/hooks/useSocket';
 import { useAuthStore } from '@/store/auth.store';
+import { useToastStore } from '@/store/toast.store';
 import { getFullName, formatTime } from '@/lib/utils';
 import type { Message } from '@/types';
 
 export function ConversationPage() {
   const { id } = useParams<{ id: string }>();
   const user = useAuthStore((s) => s.user);
+  const addToast = useToastStore((s) => s.addToast);
   const socket = useSocket();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [content, setContent] = useState('');
   const [extraMessages, setExtraMessages] = useState<Message[]>([]);
 
-  const { data: messages, isLoading, isError } = useQuery({
+  const {
+    data: messages,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ['messages', id],
     queryFn: () => messagingApi.getMessages(id!),
     enabled: !!id,
@@ -38,10 +44,15 @@ export function ConversationPage() {
       setExtraMessages((prev) => [...prev, message]);
     });
 
+    socket.on('connect_error', () => {
+      addToast('Connection lost. Trying to reconnect...', 'error');
+    });
+
     return () => {
       socket.off('receiveMessage');
+      socket.off('connect_error');
     };
-  }, [socket, id]);
+  }, [socket, id, addToast]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -56,9 +67,9 @@ export function ConversationPage() {
     setContent('');
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
       handleSend();
     }
   };
@@ -91,7 +102,6 @@ export function ConversationPage() {
       </Link>
 
       <div className="flex h-[calc(100vh-11rem)] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        {/* Messages area */}
         <div className="flex-1 space-y-4 overflow-y-auto p-6">
           {allMessages.map((message) => {
             const isMe = message.senderId === user?.id;
@@ -122,7 +132,6 @@ export function ConversationPage() {
           <div ref={bottomRef} />
         </div>
 
-        {/* Input area */}
         <div className="shrink-0 border-t border-gray-100 bg-white p-4">
           <div className="flex items-end gap-3">
             <textarea
@@ -131,7 +140,7 @@ export function ConversationPage() {
               onKeyDown={handleKeyDown}
               rows={1}
               placeholder="Type a message… (Enter to send)"
-              className="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm transition-colors focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm transition-colors focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none"
             />
             <button
               onClick={handleSend}

@@ -1,14 +1,7 @@
 import { type ElementType } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import {
-  CalendarDays,
-  Bell,
-  Shield,
-  GraduationCap,
-  ArrowRight,
-  MessageSquare,
-} from 'lucide-react';
+import { CalendarDays, Bell, Shield, GraduationCap, ArrowRight, MessageSquare } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { bookingsApi } from '@/api/bookings.api';
 import { notificationsApi } from '@/api/notifications.api';
@@ -87,7 +80,6 @@ export function DashboardPage() {
         <p className="mt-1 text-sm text-gray-500">Here's what's happening with your account.</p>
       </div>
 
-      {/* Stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {stats.map(({ label, value, icon: Icon, iconColor, iconBg, valueColor }) => (
           <div
@@ -107,7 +99,6 @@ export function DashboardPage() {
         ))}
       </div>
 
-      {/* Upcoming bookings */}
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
           <h2 className="font-semibold text-gray-900">Upcoming sessions</h2>
@@ -151,7 +142,9 @@ export function DashboardPage() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{booking.subject}</p>
-                      <p className="text-xs text-gray-500">{getFullName(booking.student.profile)}</p>
+                      <p className="text-xs text-gray-500">
+                        {getFullName(booking.student.profile)}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -171,7 +164,6 @@ export function DashboardPage() {
         )}
       </div>
 
-      {/* Quick actions */}
       <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-6">
         <h2 className="font-semibold text-indigo-900">Quick actions</h2>
         <div className="mt-4 flex flex-wrap gap-3">

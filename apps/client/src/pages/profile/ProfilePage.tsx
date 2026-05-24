@@ -2,10 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Camera, User, GraduationCap, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Camera, User, GraduationCap, Clock, AlertCircle } from 'lucide-react';
 import { usersApi } from '@/api/users.api';
 import { tutorsApi } from '@/api/tutors.api';
 import { useAuthStore } from '@/store/auth.store';
+import { useToast } from '@/store/toast.store';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, 'Required'),
@@ -41,6 +42,7 @@ function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: 
 export function ProfilePage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const toast = useToast();
 
   const {
     data: profile,
@@ -82,7 +84,11 @@ export function ProfilePage() {
 
   const profileMutation = useMutation({
     mutationFn: usersApi.updateMe,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['me'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+      toast.success('Profile updated!');
+    },
+    onError: () => toast.error('Failed to update profile. Please try again.'),
   });
 
   const tutorMutation = useMutation({
@@ -97,7 +103,11 @@ export function ProfilePage() {
       };
       return tutorProfile ? tutorsApi.updateProfile(payload) : tutorsApi.createProfile(payload);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tutor-profile-me'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tutor-profile-me'] });
+      toast.success('Tutor profile saved!');
+    },
+    onError: () => toast.error('Failed to save tutor profile. Please try again.'),
   });
 
   const availabilityForm = useForm({
@@ -106,7 +116,11 @@ export function ProfilePage() {
 
   const availabilityMutation = useMutation({
     mutationFn: tutorsApi.createAvailability,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tutor-profile-me'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tutor-profile-me'] });
+      toast.success('Availability added!');
+    },
+    onError: () => toast.error('Already have availability for this day.'),
   });
 
   const handleTutorSubmit = (raw: { subjects: string; hourlyRate: string; bio?: string }) => {
@@ -119,7 +133,7 @@ export function ProfilePage() {
     return (
       <div className="mx-auto max-w-2xl space-y-8">
         <div className="shimmer h-8 w-24 rounded" />
-        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm space-y-4">
+        <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
           <div className="flex items-center gap-4">
             <div className="shimmer h-16 w-16 rounded-full" />
             <div className="space-y-2">
@@ -142,18 +156,16 @@ export function ProfilePage() {
     );
   }
 
-  const initials =
-    profile?.profile?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?';
+  const initials = profile?.profile?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?';
 
   const roleName = user?.role
     ? user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase()
     : '';
 
   return (
-    <div className="mx-auto max-w-2xl animate-fade-in-up space-y-8">
+    <div className="animate-fade-in-up mx-auto max-w-2xl space-y-8">
       <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
 
-      {/* User profile section */}
       <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
         <SectionHeader icon={User} title="Account details" />
 
@@ -162,7 +174,7 @@ export function ProfilePage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-2xl font-bold text-indigo-600">
               {initials}
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-gray-500 ring-2 ring-white">
+            <div className="absolute -right-0.5 -bottom-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-gray-500 ring-2 ring-white">
               <Camera className="h-3 w-3 text-white" />
             </div>
           </div>
@@ -201,8 +213,7 @@ export function ProfilePage() {
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">
-              Bio{' '}
-              <span className="font-normal text-gray-400">(optional)</span>
+              Bio <span className="font-normal text-gray-400">(optional)</span>
             </label>
             <textarea
               {...profileForm.register('bio')}
@@ -211,19 +222,6 @@ export function ProfilePage() {
               placeholder="Tell students a bit about yourself…"
             />
           </div>
-
-          {profileMutation.isSuccess && (
-            <div className="flex items-center gap-2 text-sm text-green-600">
-              <CheckCircle2 className="h-4 w-4" />
-              Profile updated!
-            </div>
-          )}
-          {profileMutation.isError && (
-            <div className="flex items-center gap-2 text-sm text-red-500">
-              <AlertCircle className="h-4 w-4" />
-              Something went wrong. Please try again.
-            </div>
-          )}
 
           <button
             type="submit"
@@ -235,7 +233,6 @@ export function ProfilePage() {
         </form>
       </div>
 
-      {/* Tutor sections */}
       {user?.role === 'TUTOR' && (
         <>
           <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
@@ -254,8 +251,7 @@ export function ProfilePage() {
             <form onSubmit={tutorForm.handleSubmit(handleTutorSubmit)} className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Subjects{' '}
-                  <span className="font-normal text-gray-400">(comma separated)</span>
+                  Subjects <span className="font-normal text-gray-400">(comma separated)</span>
                 </label>
                 <input
                   {...tutorForm.register('subjects')}
@@ -276,8 +272,7 @@ export function ProfilePage() {
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Bio{' '}
-                  <span className="font-normal text-gray-400">(optional)</span>
+                  Bio <span className="font-normal text-gray-400">(optional)</span>
                 </label>
                 <textarea
                   {...tutorForm.register('bio')}
@@ -286,19 +281,6 @@ export function ProfilePage() {
                   placeholder="Tell students about your teaching style and experience…"
                 />
               </div>
-
-              {tutorMutation.isSuccess && (
-                <div className="flex items-center gap-2 text-sm text-green-600">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Tutor profile saved!
-                </div>
-              )}
-              {tutorMutation.isError && (
-                <div className="flex items-center gap-2 text-sm text-red-500">
-                  <AlertCircle className="h-4 w-4" />
-                  Failed to save tutor profile.
-                </div>
-              )}
 
               <button
                 type="submit"
@@ -328,13 +310,19 @@ export function ProfilePage() {
                     {...availabilityForm.register('dayOfWeek', { valueAsNumber: true })}
                     className={inputClass}
                   >
-                    {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(
-                      (day, i) => (
-                        <option key={day} value={i}>
-                          {day}
-                        </option>
-                      ),
-                    )}
+                    {[
+                      'Sunday',
+                      'Monday',
+                      'Tuesday',
+                      'Wednesday',
+                      'Thursday',
+                      'Friday',
+                      'Saturday',
+                    ].map((day, i) => (
+                      <option key={day} value={i}>
+                        {day}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -354,19 +342,6 @@ export function ProfilePage() {
                   />
                 </div>
               </div>
-
-              {availabilityMutation.isSuccess && (
-                <div className="flex items-center gap-2 text-sm text-green-600">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Availability added!
-                </div>
-              )}
-              {availabilityMutation.isError && (
-                <div className="flex items-center gap-2 text-sm text-red-500">
-                  <AlertCircle className="h-4 w-4" />
-                  Already have availability for this day.
-                </div>
-              )}
 
               <button
                 type="submit"

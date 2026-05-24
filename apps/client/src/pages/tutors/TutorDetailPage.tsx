@@ -9,6 +9,7 @@ import { bookingsApi } from '@/api/bookings.api';
 import { messagingApi } from '@/api/messaging.api';
 import { getFullName, getDayName } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
+import { useToast } from '@/store/toast.store';
 
 const schema = z.object({
   startTime: z.string().min(1, 'Required'),
@@ -27,8 +28,13 @@ export function TutorDetailPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const toast = useToast();
 
-  const { data: tutor, isLoading, isError } = useQuery({
+  const {
+    data: tutor,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ['tutors', id],
     queryFn: () => tutorsApi.getById(id!),
     enabled: !!id,
@@ -44,12 +50,17 @@ export function TutorDetailPage() {
 
   const bookingMutation = useMutation({
     mutationFn: (data: FormData) => bookingsApi.create({ tutorId: id!, ...data }),
-    onSuccess: () => navigate('/bookings'),
+    onSuccess: () => {
+      toast.success('Session booked successfully!');
+      navigate('/bookings');
+    },
+    onError: () => toast.error('Failed to book session. Please try again.'),
   });
 
   const messageMutation = useMutation({
     mutationFn: () => messagingApi.createConversation(tutor!.user.id),
-    onSuccess: (conv) => navigate(`/messages/${conv.id}`),
+    onSuccess: (conversation) => navigate(`/messages/${conversation.id}`),
+    onError: () => toast.error('Failed to open conversation. Please try again.'),
   });
 
   if (isLoading) {
@@ -59,7 +70,7 @@ export function TutorDetailPage() {
           <div className="flex-1 space-y-6">
             <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
               <div className="shimmer h-32 w-full" />
-              <div className="p-8 space-y-3">
+              <div className="space-y-3 p-8">
                 <div className="shimmer h-6 w-48 rounded" />
                 <div className="shimmer h-5 w-24 rounded" />
                 <div className="shimmer h-4 w-full rounded" />
@@ -88,7 +99,7 @@ export function TutorDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl animate-fade-in-up">
+    <div className="animate-fade-in-up mx-auto max-w-5xl">
       <div className="lg:flex lg:items-start lg:gap-8">
         {/* Left: Tutor info */}
         <div className="flex-1 space-y-6">
@@ -101,7 +112,9 @@ export function TutorDetailPage() {
                   {tutor.user.profile?.firstName?.[0] ?? '?'}
                 </div>
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">{getFullName(tutor.user.profile)}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {getFullName(tutor.user.profile)}
+              </h1>
               <p className="mt-1 text-lg font-semibold text-indigo-600">${tutor.hourlyRate}/hr</p>
               {tutor.bio && <p className="mt-3 leading-relaxed text-gray-600">{tutor.bio}</p>}
               <div className="mt-4 flex flex-wrap gap-2">
@@ -147,9 +160,7 @@ export function TutorDetailPage() {
               {/* Contact */}
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <h2 className="font-semibold text-gray-900">Contact tutor</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Start a conversation before booking.
-                </p>
+                <p className="mt-1 text-sm text-gray-500">Start a conversation before booking.</p>
                 <button
                   onClick={() => messageMutation.mutate()}
                   disabled={messageMutation.isPending}
@@ -158,9 +169,6 @@ export function TutorDetailPage() {
                   <MessageSquare className="h-4 w-4" />
                   {messageMutation.isPending ? 'Opening chat...' : 'Send a message'}
                 </button>
-                {messageMutation.isError && (
-                  <p className="mt-2 text-xs text-red-500">Something went wrong. Please try again.</p>
-                )}
               </div>
 
               {/* Booking form */}
@@ -218,8 +226,7 @@ export function TutorDetailPage() {
                     </div>
                     <div>
                       <label className="mb-1 block text-sm font-medium text-gray-700">
-                        Notes{' '}
-                        <span className="font-normal text-gray-400">(optional)</span>
+                        Notes <span className="font-normal text-gray-400">(optional)</span>
                       </label>
                       <textarea
                         {...register('notes')}
@@ -228,13 +235,10 @@ export function TutorDetailPage() {
                         placeholder="What would you like to focus on?"
                       />
                     </div>
-                    {bookingMutation.isError && (
-                      <p className="text-xs text-red-500">Something went wrong. Please try again.</p>
-                    )}
                     <button
                       type="submit"
                       disabled={bookingMutation.isPending}
-                      className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+                      className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
                     >
                       {bookingMutation.isPending ? 'Booking...' : 'Book session'}
                     </button>
