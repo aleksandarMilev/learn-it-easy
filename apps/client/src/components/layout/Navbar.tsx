@@ -1,16 +1,24 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
 import { authApi } from '@/api/auth.api';
+import { notificationsApi } from '@/api/notifications.api';
 
 export function Navbar() {
   const { user, refreshToken, logout, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
+  const { data: unreadCount } = useQuery({
+    queryKey: ['notifications', 'unread'],
+    queryFn: notificationsApi.getUnreadCount,
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
   const handleLogout = async () => {
     if (refreshToken) {
       await authApi.logout(refreshToken).catch(() => {});
     }
-
     logout();
     navigate('/login');
   };
@@ -34,8 +42,16 @@ export function Navbar() {
                 <Link to="/messages" className="text-sm text-gray-600 hover:text-indigo-600">
                   Messages
                 </Link>
-                <Link to="/notifications" className="text-sm text-gray-600 hover:text-indigo-600">
+                <Link
+                  to="/notifications"
+                  className="relative text-sm text-gray-600 hover:text-indigo-600"
+                >
                   Notifications
+                  {unreadCount && unreadCount.count > 0 && (
+                    <span className="absolute -top-2 -right-4 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                      {unreadCount.count > 9 ? '9+' : unreadCount.count}
+                    </span>
+                  )}
                 </Link>
               </div>
             )}
