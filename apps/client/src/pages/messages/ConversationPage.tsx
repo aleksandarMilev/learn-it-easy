@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useEffect, useRef, useState, useMemo } from 'react';
+import { ArrowLeft, SendHorizonal } from 'lucide-react';
 import { messagingApi } from '@/api/messaging.api';
 import { useSocket } from '@/hooks/useSocket';
 import { useAuthStore } from '@/store/auth.store';
@@ -64,8 +65,9 @@ export function ConversationPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+      <div className="mx-auto max-w-2xl">
+        <div className="shimmer mb-4 h-4 w-32 rounded" />
+        <div className="h-[calc(100vh-11rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" />
       </div>
     );
   }
@@ -79,50 +81,66 @@ export function ConversationPage() {
   }
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-8rem)] max-w-2xl flex-col">
-      <div className="flex-1 space-y-4 overflow-y-auto rounded-t-xl border border-b-0 border-gray-200 bg-white p-6">
-        {allMessages.map((message) => {
-          const isMe = message.senderId === user?.id;
-          return (
-            <div key={message.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-              <div
-                className={`max-w-xs rounded-2xl px-4 py-2 ${
-                  isMe ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-900'
-                }`}
-              >
-                {!isMe && (
-                  <p className="mb-1 text-xs font-medium text-gray-500">
-                    {getFullName(message.sender.profile)}
-                  </p>
-                )}
-                <p className="text-sm">{message.content}</p>
-                <p className={`mt-1 text-xs ${isMe ? 'text-indigo-200' : 'text-gray-400'}`}>
-                  {formatTime(message.createdAt)}
-                </p>
-              </div>
-            </div>
-          );
-        })}
-        <div ref={bottomRef} />
-      </div>
+    <div className="mx-auto max-w-2xl">
+      <Link
+        to="/messages"
+        className="mb-3 inline-flex items-center gap-1.5 text-sm text-indigo-600 transition-colors hover:text-indigo-700"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to messages
+      </Link>
 
-      <div className="rounded-b-xl border border-gray-200 bg-white p-4">
-        <div className="flex gap-3">
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            onKeyDown={handleKeyDown}
-            rows={1}
-            placeholder="Type a message... (Enter to send)"
-            className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-          />
-          <button
-            onClick={handleSend}
-            disabled={!content.trim()}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-          >
-            Send
-          </button>
+      <div className="flex h-[calc(100vh-11rem)] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        {/* Messages area */}
+        <div className="flex-1 space-y-4 overflow-y-auto p-6">
+          {allMessages.map((message) => {
+            const isMe = message.senderId === user?.id;
+            return (
+              <div key={message.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`max-w-xs rounded-2xl px-4 py-2.5 shadow-sm lg:max-w-sm ${
+                    isMe ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-900'
+                  }`}
+                >
+                  {!isMe && (
+                    <p className="mb-1 text-xs font-semibold text-gray-500">
+                      {getFullName(message.sender.profile)}
+                    </p>
+                  )}
+                  <p className="text-sm leading-relaxed">{message.content}</p>
+                  <p
+                    className={`mt-1 text-right text-xs ${
+                      isMe ? 'text-indigo-300' : 'text-gray-400'
+                    }`}
+                  >
+                    {formatTime(message.createdAt)}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input area */}
+        <div className="shrink-0 border-t border-gray-100 bg-white p-4">
+          <div className="flex items-end gap-3">
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              onKeyDown={handleKeyDown}
+              rows={1}
+              placeholder="Type a message… (Enter to send)"
+              className="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm transition-colors focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            />
+            <button
+              onClick={handleSend}
+              disabled={!content.trim()}
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
+            >
+              <SendHorizonal className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { MessageSquare, GraduationCap, ChevronRight } from 'lucide-react';
 import { messagingApi } from '@/api/messaging.api';
 import { getFullName, formatDateTime } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
@@ -14,8 +15,20 @@ export function MessagesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+      <div className="mx-auto max-w-2xl space-y-6">
+        <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+        <div className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 px-6 py-4">
+              <div className="shimmer h-12 w-12 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <div className="shimmer h-4 w-32 rounded" />
+                <div className="shimmer h-3 w-48 rounded" />
+              </div>
+              <div className="shimmer h-3 w-16 rounded" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -29,43 +42,62 @@ export function MessagesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl animate-fade-in-up space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
 
       {conversations?.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white py-24 text-center shadow-sm">
-          <p className="text-gray-500">No conversations yet.</p>
-          <p className="mt-1 text-sm text-gray-400">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white py-24 text-center shadow-sm">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+            <MessageSquare className="h-7 w-7 text-gray-400" />
+          </div>
+          <h3 className="font-semibold text-gray-900">No conversations yet</h3>
+          <p className="mt-1 text-sm text-gray-500">
             Start a conversation from a tutor's profile page.
           </p>
+          <Link
+            to="/tutors"
+            className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+          >
+            <GraduationCap className="h-4 w-4" />
+            Browse tutors
+          </Link>
         </div>
       ) : (
-        <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white shadow-sm">
-          {conversations?.map((conversation) => {
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          {conversations?.map((conversation, idx) => {
             const other =
               conversation.studentId === user?.id ? conversation.tutor : conversation.student;
             const lastMessage = conversation.messages[0];
+            const isLast = idx === (conversations?.length ?? 0) - 1;
 
             return (
               <Link
                 key={conversation.id}
                 to={`/messages/${conversation.id}`}
-                className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50"
+                className={`flex items-center gap-4 px-6 py-4 transition-colors hover:bg-gray-50 ${
+                  isLast ? '' : 'border-b border-gray-100'
+                }`}
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-lg font-bold text-indigo-600">
+                <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-lg font-bold text-indigo-600">
                   {other.profile?.firstName?.[0] ?? '?'}
                 </div>
-                <div className="flex-1 overflow-hidden">
+
+                <div className="min-w-0 flex-1">
                   <p className="font-semibold text-gray-900">{getFullName(other.profile)}</p>
                   {lastMessage && (
                     <p className="truncate text-sm text-gray-500">{lastMessage.content}</p>
                   )}
+                  {!lastMessage && (
+                    <p className="text-sm text-gray-400 italic">No messages yet</p>
+                  )}
                 </div>
-                {lastMessage && (
-                  <p className="shrink-0 text-xs text-gray-400">
-                    {formatDateTime(lastMessage.createdAt)}
-                  </p>
-                )}
+
+                <div className="flex shrink-0 items-center gap-2">
+                  {lastMessage && (
+                    <p className="text-xs text-gray-400">{formatDateTime(lastMessage.createdAt)}</p>
+                  )}
+                  <ChevronRight className="h-4 w-4 text-gray-300" />
+                </div>
               </Link>
             );
           })}
