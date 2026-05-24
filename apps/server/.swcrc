@@ -1,0 +1,16 @@
+{
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "decorators": true
+    },
+    "transform": {
+      "decoratorMetadata": true,
+      "legacyDecorator": true
+    },
+    "target": "es2023",
+    "keepClassNames": true
+  },
+  "sourceMaps": false,
+  "exclude": ["src/generated"]
+}
