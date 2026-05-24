@@ -3,7 +3,7 @@ import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { envSchema } from './env.validation';
 
 const envFile =
-  process.env['NODE_ENV'] === 'test' ? '../../.env.ci' : '../../.env.dev';
+  process.env.NODE_ENV === 'test' ? '../../.env.ci' : '../../.env.dev';
 
 @Module({
   imports: [
