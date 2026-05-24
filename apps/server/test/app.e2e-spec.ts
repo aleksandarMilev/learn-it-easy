@@ -315,4 +315,56 @@ describe('App (e2e)', () => {
         .expect(404);
     });
   });
+
+  describe('Messaging', () => {
+    it('/api/v1/messages/conversations (GET) - should fail without auth', () => {
+      return request(app.getHttpServer())
+        .get('/api/v1/messages/conversations')
+        .expect(401);
+    });
+
+    it('/api/v1/messages/conversation (POST) - should fail without auth', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/messages/conversation')
+        .expect(401);
+    });
+
+    it('/api/v1/messages/conversations (GET) - should return empty list', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send({
+          email: faker.internet.email(),
+          password: 'Password123!',
+          firstName: faker.person.firstName(),
+          lastName: faker.person.lastName(),
+          role: Role.STUDENT,
+        });
+
+      return request(app.getHttpServer())
+        .get('/api/v1/messages/conversations')
+        .set('Authorization', `Bearer ${res.body.accessToken}`)
+        .expect(200)
+        .expect((r) => {
+          expect(Array.isArray(r.body)).toBe(true);
+        });
+    });
+
+    it('/api/v1/messages/conversation (POST) - should fail with invalid data', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send({
+          email: faker.internet.email(),
+          password: 'Password123!',
+          firstName: faker.person.firstName(),
+          lastName: faker.person.lastName(),
+          role: Role.STUDENT,
+        });
+
+      return request(app.getHttpServer())
+        .post('/api/v1/messages/conversation')
+        .set('Authorization', `Bearer ${res.body.accessToken}`)
+        .send({})
+        .expect(400);
+    });
+  });
 });

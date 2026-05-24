@@ -33,6 +33,10 @@ model User {
   refreshTokens RefreshToken[]
   tutorProfile  TutorProfile?
   studentBookings Booking[]    @relation("StudentBookings")
+
+  studentConversations Conversation[] @relation("StudentConversations")
+  tutorConversations   Conversation[] @relation("TutorConversations")
+  sentMessages         Message[]      @relation("SentMessages")
 }
 
 model TutorProfile {
@@ -112,4 +116,31 @@ model RefreshToken {
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Conversation {
+  id           String    @id @default(uuid())
+  studentId    String
+  tutorId      String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  student      User      @relation("StudentConversations", fields: [studentId], references: [id])
+  tutor        User      @relation("TutorConversations", fields: [tutorId], references: [id])
+  messages     Message[]
+
+  @@unique([studentId, tutorId])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  createdAt      DateTime     @default(now())
+  deletedAt      DateTime?
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
 }
