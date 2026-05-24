@@ -6,8 +6,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -15,59 +13,57 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: always
 
   redis:
     image: redis:7-alpine
     container_name: learn-it-easy-redis
-    ports:
-      - "${REDIS_PORT}:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: always
 
   server:
     build:
       context: .
-      dockerfile: apps/server/Dockerfile.dev
+      dockerfile: apps/server/Dockerfile.prod
     container_name: learn-it-easy-server
-    ports:
-      - "${PORT}:3000"
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       PORT: 3000
       DATABASE_URL: ${DATABASE_URL}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
-    volumes:
-      - ./apps/server/src:/app/apps/server/src
-      - ./apps/server/prisma:/app/apps/server/prisma
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
+    restart: always
 
   client:
     build:
       context: .
-      dockerfile: apps/client/Dockerfile.dev
+      dockerfile: apps/client/Dockerfile.prod
+      args:
+        VITE_API_URL: ${VITE_API_URL}
     container_name: learn-it-easy-client
     ports:
-      - "5173:5173"
-    volumes:
-      - ./apps/client/src:/app/apps/client/src
+      - "80:80"
+      - "443:443"
     depends_on:
       - server
-    restart: unless-stopped
+    restart: always
 
 volumes:
   postgres_data:

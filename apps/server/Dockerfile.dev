@@ -1,0 +1,17 @@
+FROM node:20-alpine
+
+RUN npm install -g pnpm
+
+WORKDIR /app
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps/server/package.json ./apps/server/
+COPY packages/ ./packages/
+
+RUN pnpm install --frozen-lockfile
+
+COPY apps/server/ ./apps/server/
+
+WORKDIR /app/apps/server
+
+CMD ["sh", "-c", "/app/node_modules/.pnpm/node_modules/.bin/prisma generate --schema=./prisma/schema.prisma && pnpm run start:dev"]

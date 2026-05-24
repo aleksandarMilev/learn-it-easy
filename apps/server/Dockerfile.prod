@@ -1,0 +1,32 @@
+FROM node:20-alpine AS base
+RUN npm install -g pnpm
+WORKDIR /app
+
+FROM base AS deps
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps/server/package.json ./apps/server/
+COPY packages/ ./packages/
+RUN pnpm install --frozen-lockfile
+
+FROM deps AS builder
+COPY apps/server/ ./apps/server/
+WORKDIR /app/apps/server
+RUN /app/node_modules/.pnpm/node_modules/.bin/prisma generate --schema=./prisma/schema.prisma
+RUN pnpm run build
+
+FROM node:20-alpine AS runner
+RUN npm install -g pnpm
+WORKDIR /app
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps/server/package.json ./apps/server/
+COPY packages/ ./packages/
+RUN pnpm install --frozen-lockfile --prod
+COPY --from=builder /app/apps/server/dist ./apps/server/dist
+COPY --from=builder /app/apps/server/prisma ./apps/server/prisma
+COPY --from=builder /app/node_modules/.pnpm/@prisma+client@6.19.3_prisma@6.19.3_typescript@5.9.2__typescript@5.9.2/node_modules/@prisma/client ./node_modules/.pnpm/@prisma+client@6.19.3_prisma@6.19.3_typescript@5.9.2__typescript@5.9.2/node_modules/@prisma/client
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+WORKDIR /app/apps/server
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+EXPOSE 3000
+CMD ["node", "dist/src/main.js"]

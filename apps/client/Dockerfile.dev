@@ -1,0 +1,17 @@
+FROM node:20-alpine
+
+RUN npm install -g pnpm
+
+WORKDIR /app
+
+COPY .npmrc package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps/client/package.json ./apps/client/
+COPY packages/ ./packages/
+
+RUN pnpm install --frozen-lockfile
+
+COPY apps/client/ ./apps/client/
+
+WORKDIR /app/apps/client
+
+CMD ["pnpm", "exec", "vite", "--host"]
