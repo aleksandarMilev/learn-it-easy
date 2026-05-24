@@ -367,4 +367,52 @@ describe('App (e2e)', () => {
         .expect(400);
     });
   });
+
+  describe('Notifications', () => {
+    it('/api/v1/notifications (GET) - should fail without auth', () => {
+      return request(app.getHttpServer())
+        .get('/api/v1/notifications')
+        .expect(401);
+    });
+
+    it('/api/v1/notifications (GET) - should return empty list', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send({
+          email: faker.internet.email(),
+          password: 'Password123!',
+          firstName: faker.person.firstName(),
+          lastName: faker.person.lastName(),
+          role: Role.STUDENT,
+        });
+
+      return request(app.getHttpServer())
+        .get('/api/v1/notifications')
+        .set('Authorization', `Bearer ${res.body.accessToken}`)
+        .expect(200)
+        .expect((r) => {
+          expect(Array.isArray(r.body)).toBe(true);
+        });
+    });
+
+    it('/api/v1/notifications/unread-count (GET) - should return 0', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send({
+          email: faker.internet.email(),
+          password: 'Password123!',
+          firstName: faker.person.firstName(),
+          lastName: faker.person.lastName(),
+          role: Role.STUDENT,
+        });
+
+      return request(app.getHttpServer())
+        .get('/api/v1/notifications/unread-count')
+        .set('Authorization', `Bearer ${res.body.accessToken}`)
+        .expect(200)
+        .expect((r) => {
+          expect(r.body).toHaveProperty('count', 0);
+        });
+    });
+  });
 });

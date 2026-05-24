@@ -37,6 +37,8 @@ model User {
   studentConversations Conversation[] @relation("StudentConversations")
   tutorConversations   Conversation[] @relation("TutorConversations")
   sentMessages         Message[]      @relation("SentMessages")
+
+  notifications Notification[]
 }
 
 model TutorProfile {
@@ -143,4 +145,25 @@ model Message {
 
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  deletedAt DateTime?
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum NotificationType {
+  BOOKING_CREATED
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  NEW_MESSAGE
+  REVIEW_RECEIVED
 }
