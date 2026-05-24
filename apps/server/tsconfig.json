@@ -2,7 +2,7 @@
   "extends": "@repo/typescript-config/nestjs.json",
   "compilerOptions": {
     "isolatedModules": true,
-    "types": ["jest", "node"],
+    "types": ["jest", "node", "multer"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "resolvePackageJsonExports": true,

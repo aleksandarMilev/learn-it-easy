@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { GraduationCap, Clock, ArrowRight } from 'lucide-react';
 import { tutorsApi } from '@/api/tutors.api';
 import { getFullName, getDayName } from '@/lib/utils';
+import { Avatar } from '@/components/ui/Avatar';
 
 function TutorCardSkeleton() {
   return (
@@ -94,9 +95,7 @@ export function TutorsPage() {
                     <span className="text-sm font-normal text-gray-400">/hr</span>
                   </p>
                 </div>
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-lg font-bold text-indigo-600">
-                  {tutor.user.profile?.firstName?.[0] ?? '?'}
-                </div>
+                <Avatar profile={tutor.user.profile} size="md" />
               </div>
 
               {tutor.bio && (

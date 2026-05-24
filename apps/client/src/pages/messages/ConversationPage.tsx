@@ -7,6 +7,7 @@ import { useSocket } from '@/hooks/useSocket';
 import { useAuthStore } from '@/store/auth.store';
 import { useToastStore } from '@/store/toast.store';
 import { getFullName, formatTime } from '@/lib/utils';
+import { Avatar } from '@/components/ui/Avatar';
 import type { Message } from '@/types';
 
 export function ConversationPage() {
@@ -106,7 +107,11 @@ export function ConversationPage() {
           {allMessages.map((message) => {
             const isMe = message.senderId === user?.id;
             return (
-              <div key={message.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+              <div
+                key={message.id}
+                className={`flex items-end gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}
+              >
+                {!isMe && <Avatar profile={message.sender.profile} size="sm" />}
                 <div
                   className={`max-w-xs rounded-2xl px-4 py-2.5 shadow-sm lg:max-w-sm ${
                     isMe ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-900'

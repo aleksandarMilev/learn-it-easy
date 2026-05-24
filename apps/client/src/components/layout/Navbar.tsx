@@ -11,7 +11,9 @@ import {
 import { useAuthStore } from '@/store/auth.store';
 import { authApi } from '@/api/auth.api';
 import { notificationsApi } from '@/api/notifications.api';
+import { usersApi } from '@/api/users.api';
 import { useToast } from '@/store/toast.store';
+import { Avatar } from '@/components/ui/Avatar';
 
 const navLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -31,6 +33,12 @@ export function Navbar() {
     queryFn: notificationsApi.getUnreadCount,
     enabled: isAuthenticated,
     refetchInterval: 30_000,
+  });
+
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: usersApi.getMe,
+    enabled: isAuthenticated,
   });
 
   const handleLogout = async () => {
@@ -101,9 +109,7 @@ export function Navbar() {
                 to="/profile"
                 className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50"
               >
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-600">
-                  {user?.email?.[0]?.toUpperCase() ?? '?'}
-                </div>
+                <Avatar profile={me?.profile ?? null} size="sm" />
                 <span className="hidden max-w-40 truncate sm:block">{user?.email}</span>
               </Link>
 

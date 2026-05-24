@@ -42,6 +42,7 @@ export class AuthService {
           create: {
             firstName: dto.firstName,
             lastName: dto.lastName,
+            avatarUrl: '/uploads/avatars/default-avatar.svg',
           },
         },
       },

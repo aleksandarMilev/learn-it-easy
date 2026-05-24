@@ -4,6 +4,7 @@ import { MessageSquare, GraduationCap, ChevronRight } from 'lucide-react';
 import { messagingApi } from '@/api/messaging.api';
 import { getFullName, formatDateTime } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
+import { Avatar } from '@/components/ui/Avatar';
 
 export function MessagesPage() {
   const user = useAuthStore((s) => s.user);
@@ -78,9 +79,7 @@ export function MessagesPage() {
                   isLast ? '' : 'border-b border-gray-100'
                 }`}
               >
-                <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-lg font-bold text-indigo-600">
-                  {other.profile?.firstName?.[0] ?? '?'}
-                </div>
+                <Avatar profile={other.profile} size="md" />
 
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-gray-900">{getFullName(other.profile)}</p>

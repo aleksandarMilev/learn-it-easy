@@ -4,6 +4,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { UpdateProfileDto } from './dto/update-profile.dto';
 
+const DEFAULT_AVATAR_URL = '/uploads/avatars/default-avatar.svg';
+
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -21,6 +23,7 @@ export class UsersService {
             firstName: true,
             lastName: true,
             bio: true,
+            avatarUrl: true,
           },
         },
       },
@@ -45,6 +48,7 @@ export class UsersService {
             firstName: true,
             lastName: true,
             bio: true,
+            avatarUrl: true,
           },
         },
       },
@@ -90,7 +94,26 @@ export class UsersService {
         firstName: true,
         lastName: true,
         bio: true,
+        avatarUrl: true,
       },
     });
+  }
+
+  async updateAvatar(userId: string, avatarUrl: string) {
+    await this.prisma.profile.update({
+      where: { userId },
+      data: { avatarUrl },
+    });
+
+    return this.findMe(userId);
+  }
+
+  async removeAvatar(userId: string) {
+    await this.prisma.profile.update({
+      where: { userId },
+      data: { avatarUrl: DEFAULT_AVATAR_URL },
+    });
+
+    return this.findMe(userId);
   }
 }

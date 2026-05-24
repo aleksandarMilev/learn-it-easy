@@ -10,6 +10,7 @@ import { messagingApi } from '@/api/messaging.api';
 import { getFullName, getDayName } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
 import { useToast } from '@/store/toast.store';
+import { Avatar } from '@/components/ui/Avatar';
 
 const schema = z.object({
   startTime: z.string().min(1, 'Required'),
@@ -107,10 +108,8 @@ export function TutorDetailPage() {
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div className="h-28 bg-gradient-to-br from-indigo-500 to-indigo-700" />
             <div className="px-8 pb-8">
-              <div className="-mt-10 mb-4">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-indigo-100 text-3xl font-bold text-indigo-600 shadow-sm">
-                  {tutor.user.profile?.firstName?.[0] ?? '?'}
-                </div>
+              <div className="-mt-10 mb-4 ring-4 ring-white rounded-full w-fit shadow-sm">
+                <Avatar profile={tutor.user.profile} size="lg" />
               </div>
               <h1 className="text-2xl font-bold text-gray-900">
                 {getFullName(tutor.user.profile)}

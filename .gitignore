@@ -17,3 +17,5 @@ yarn-error.log*
 *.pem
 .vscode
 CLAUDE.md
+uploads/avatars/*
+!uploads/avatars/default-avatar.svg

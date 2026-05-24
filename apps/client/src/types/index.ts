@@ -21,6 +21,7 @@ export interface Profile {
   firstName: string;
   lastName: string;
   bio: string | null;
+  avatarUrl: string | null;
 }
 
 export interface TutorProfile {

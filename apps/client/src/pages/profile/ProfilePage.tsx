@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,6 +8,7 @@ import { usersApi } from '@/api/users.api';
 import { tutorsApi } from '@/api/tutors.api';
 import { useAuthStore } from '@/store/auth.store';
 import { useToast } from '@/store/toast.store';
+import { Avatar } from '@/components/ui/Avatar';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, 'Required'),
@@ -43,6 +45,11 @@ export function ProfilePage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   const {
     data: profile,
@@ -123,11 +130,71 @@ export function ProfilePage() {
     onError: () => toast.error('Already have availability for this day.'),
   });
 
+  const uploadAvatarMutation = useMutation({
+    mutationFn: (file: File) => usersApi.uploadAvatar(file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+      toast.success('Avatar updated!');
+      setPreviewUrl(null);
+      setPendingFile(null);
+    },
+    onError: () => toast.error('Failed to upload avatar. Check file size and format.'),
+  });
+
+  const removeAvatarMutation = useMutation({
+    mutationFn: usersApi.removeAvatar,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+      toast.info('Profile photo removed');
+    },
+    onError: () => toast.error('Failed to remove photo'),
+  });
+
   const handleTutorSubmit = (raw: { subjects: string; hourlyRate: string; bio?: string }) => {
     const result = tutorSchema.safeParse(raw);
-    if (!result.success) return;
+    if (!result.success) {
+      return;
+    }
     tutorMutation.mutate(result.data);
   };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setPreviewError(null);
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be smaller than 2MB');
+      setPreviewError('Image must be smaller than 2MB');
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file');
+      setPreviewError('Please select a valid image file');
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+    setPendingFile(file);
+  };
+
+  const handleCancelPreview = () => {
+    setPreviewUrl(null);
+    setPendingFile(null);
+    setPreviewError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const currentAvatarUrl = profile?.profile?.avatarUrl ?? null;
+  const hasCustomAvatar =
+    currentAvatarUrl !== null && !currentAvatarUrl.endsWith('default-avatar.svg');
 
   if (isProfileLoading || isTutorProfileLoading) {
     return (
@@ -156,11 +223,13 @@ export function ProfilePage() {
     );
   }
 
-  const initials = profile?.profile?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?';
-
   const roleName = user?.role
     ? user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase()
     : '';
+
+  const avatarProfile = previewUrl
+    ? { firstName: profile?.profile?.firstName, avatarUrl: previewUrl }
+    : { firstName: profile?.profile?.firstName, avatarUrl: currentAvatarUrl };
 
   return (
     <div className="animate-fade-in-up mx-auto max-w-2xl space-y-8">
@@ -170,14 +239,59 @@ export function ProfilePage() {
         <SectionHeader icon={User} title="Account details" />
 
         <div className="mb-6 flex items-center gap-4">
-          <div className="relative">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-2xl font-bold text-indigo-600">
-              {initials}
+          <div className="flex flex-col items-center gap-2">
+            <div
+              className="group relative cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Avatar profile={avatarProfile} size="lg" />
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                <Camera className="h-6 w-6 text-white" />
+              </div>
             </div>
-            <div className="absolute -right-0.5 -bottom-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-gray-500 ring-2 ring-white">
-              <Camera className="h-3 w-3 text-white" />
-            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+
+            {previewUrl && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => pendingFile && uploadAvatarMutation.mutate(pendingFile)}
+                  disabled={uploadAvatarMutation.isPending}
+                  className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {uploadAvatarMutation.isPending ? 'Saving...' : 'Save photo'}
+                </button>
+                <button
+                  onClick={handleCancelPreview}
+                  disabled={uploadAvatarMutation.isPending}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+
+            {!previewUrl && hasCustomAvatar && (
+              <button
+                onClick={() => removeAvatarMutation.mutate()}
+                disabled={removeAvatarMutation.isPending}
+                className="text-xs text-red-500 transition-colors hover:text-red-700 disabled:opacity-50"
+              >
+                {removeAvatarMutation.isPending ? 'Removing...' : 'Remove photo'}
+              </button>
+            )}
+
+            {previewError && (
+              <p className="text-xs text-red-500">{previewError}</p>
+            )}
           </div>
+
           <div>
             <p className="font-semibold text-gray-900">{user?.email}</p>
             <span className="mt-0.5 inline-block rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">

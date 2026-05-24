@@ -80,7 +80,9 @@ export function RegisterPage() {
           </ul>
         </div>
 
-        <p className="text-xs text-indigo-400">© 2025 LearnItEasy. All rights reserved.</p>
+        <p className="text-xs text-indigo-400">
+          © {new Date().getFullYear()} LearnItEasy. All rights reserved.
+        </p>
       </div>
 
       <div className="flex flex-1 items-center justify-center bg-gray-50 px-6 py-12">
