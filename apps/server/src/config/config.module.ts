@@ -11,5 +11,4 @@ import { envSchema } from './env.validation';
     }),
   ],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class ConfigModule {}
