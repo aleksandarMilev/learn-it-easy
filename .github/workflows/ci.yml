@@ -60,6 +60,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma client
+        run: pnpm --filter server exec prisma generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/learn_it_easy_test
+
       - name: Run migrations
         run: pnpm --filter server exec dotenv -e ../../.env.ci -- prisma migrate deploy
         env:
