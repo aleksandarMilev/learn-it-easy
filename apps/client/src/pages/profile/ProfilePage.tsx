@@ -29,12 +29,20 @@ export function ProfilePage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
 
-  const { data: profile } = useQuery({
+  const {
+    data: profile,
+    isLoading: isProfileLoading,
+    isError: isProfileError,
+  } = useQuery({
     queryKey: ['me'],
     queryFn: usersApi.getMe,
   });
 
-  const { data: tutorProfile } = useQuery({
+  const {
+    data: tutorProfile,
+    isLoading: isTutorProfileLoading,
+    isError: isTutorProfileError,
+  } = useQuery({
     queryKey: ['tutor-profile-me'],
     queryFn: tutorsApi.getAll,
     enabled: user?.role === 'TUTOR',
@@ -99,6 +107,22 @@ export function ProfilePage() {
     tutorMutation.mutate(result.data);
   };
 
+  if (isProfileLoading || isTutorProfileLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (isProfileError || isTutorProfileError) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <p className="text-sm text-red-500">Something went wrong. Please try again.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
@@ -153,6 +177,9 @@ export function ProfilePage() {
             />
           </div>
           {profileMutation.isSuccess && <p className="text-sm text-green-600">Profile updated!</p>}
+          {profileMutation.isError && (
+            <p className="text-sm text-red-500">Something went wrong. Please try again.</p>
+          )}
           <button
             type="submit"
             disabled={profileMutation.isPending}

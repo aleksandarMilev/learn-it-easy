@@ -4,7 +4,7 @@ import { tutorsApi } from '@/api/tutors.api';
 import { getFullName, getDayName } from '@/lib/utils';
 
 export function TutorsPage() {
-  const { data: tutors, isLoading } = useQuery({
+  const { data: tutors, isLoading, isError } = useQuery({
     queryKey: ['tutors'],
     queryFn: tutorsApi.getAll,
   });
@@ -13,6 +13,14 @@ export function TutorsPage() {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <p className="text-sm text-red-500">Something went wrong. Please try again.</p>
       </div>
     );
   }

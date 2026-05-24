@@ -14,7 +14,7 @@ const typeLabels: Record<NotificationType, string> = {
 export function NotificationsPage() {
   const queryClient = useQueryClient();
 
-  const { data: notifications, isLoading } = useQuery({
+  const { data: notifications, isLoading, isError } = useQuery({
     queryKey: ['notifications'],
     queryFn: notificationsApi.getAll,
   });
@@ -39,6 +39,14 @@ export function NotificationsPage() {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <p className="text-sm text-red-500">Something went wrong. Please try again.</p>
       </div>
     );
   }
@@ -75,6 +83,7 @@ export function NotificationsPage() {
                   {!notification.isRead && (
                     <button
                       onClick={() => readMutation.mutate(notification.id)}
+                      disabled={readMutation.isPending}
                       className="text-xs text-indigo-600 hover:underline"
                     >
                       Mark read
@@ -82,12 +91,16 @@ export function NotificationsPage() {
                   )}
                   <button
                     onClick={() => deleteMutation.mutate(notification.id)}
+                    disabled={deleteMutation.isPending}
                     className="text-xs text-red-400 hover:underline"
                   >
                     Delete
                   </button>
                 </div>
               </div>
+              {(readMutation.isError || deleteMutation.isError) && (
+                <p className="mt-3 text-sm text-red-500">Something went wrong. Please try again.</p>
+              )}
             </div>
           ))}
         </div>

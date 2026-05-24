@@ -14,7 +14,7 @@ const statusColors: Record<BookingStatus, string> = {
 export function BookingsPage() {
   const queryClient = useQueryClient();
 
-  const { data: bookings, isLoading } = useQuery({
+  const { data: bookings, isLoading, isError } = useQuery({
     queryKey: ['bookings'],
     queryFn: bookingsApi.getAll,
   });
@@ -28,6 +28,14 @@ export function BookingsPage() {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <p className="text-sm text-red-500">Something went wrong. Please try again.</p>
       </div>
     );
   }
@@ -82,6 +90,9 @@ export function BookingsPage() {
                   )}
                 </div>
               </div>
+              {cancelMutation.isError && (
+                <p className="mt-3 text-sm text-red-500">Something went wrong. Please try again.</p>
+              )}
             </div>
           ))}
         </div>

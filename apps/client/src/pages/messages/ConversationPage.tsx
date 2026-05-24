@@ -15,7 +15,7 @@ export function ConversationPage() {
   const [content, setContent] = useState('');
   const [extraMessages, setExtraMessages] = useState<Message[]>([]);
 
-  const { data: messages } = useQuery({
+  const { data: messages, isLoading, isError } = useQuery({
     queryKey: ['messages', id],
     queryFn: () => messagingApi.getMessages(id!),
     enabled: !!id,
@@ -61,6 +61,22 @@ export function ConversationPage() {
       handleSend();
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <p className="text-sm text-red-500">Something went wrong. Please try again.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex h-[calc(100vh-8rem)] max-w-2xl flex-col">

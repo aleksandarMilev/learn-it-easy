@@ -24,7 +24,7 @@ export function TutorDetailPage() {
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  const { data: tutor, isLoading } = useQuery({
+  const { data: tutor, isLoading, isError } = useQuery({
     queryKey: ['tutors', id],
     queryFn: () => tutorsApi.getById(id!),
     enabled: !!id,
@@ -52,6 +52,14 @@ export function TutorDetailPage() {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <p className="text-sm text-red-500">Something went wrong. Please try again.</p>
       </div>
     );
   }
@@ -114,6 +122,9 @@ export function TutorDetailPage() {
           >
             {messageMutation.isPending ? 'Opening chat...' : 'Send a message'}
           </button>
+          {messageMutation.isError && (
+            <p className="mt-2 text-sm text-red-500">Something went wrong. Please try again.</p>
+          )}
         </div>
       )}
 
@@ -177,7 +188,7 @@ export function TutorDetailPage() {
               />
             </div>
             {bookingMutation.isError && (
-              <p className="text-sm text-red-500">Failed to create booking. Check the time slot.</p>
+              <p className="text-sm text-red-500">Something went wrong. Please try again.</p>
             )}
             <button
               type="submit"
