@@ -1,48 +1,48 @@
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
 enum Role {
-  STUDENT
-  TUTOR
-  ADMIN
+    STUDENT
+    TUTOR
+    ADMIN
 }
 
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  password      String
-  role          Role           @default(STUDENT)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+    id        String   @id @default(uuid())
+    email     String   @unique
+    password  String
+    role      Role     @default(STUDENT)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  profile       Profile?
-  refreshTokens RefreshToken[]
+    profile       Profile?
+    refreshTokens RefreshToken[]
 }
 
 model Profile {
-  id        String   @id @default(uuid())
-  firstName String
-  lastName  String
-  bio       String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+    id        String   @id @default(uuid())
+    firstName String
+    lastName  String
+    bio       String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId String @unique
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  userId    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+    id        String   @id @default(uuid())
+    token     String   @unique
+    userId    String
+    expiresAt DateTime
+    createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -10,6 +10,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { Env } from '../config/env.validation';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -46,7 +47,7 @@ export class AuthService {
       },
     });
 
-    return this.generateTokens(user.id, user.email, user.role);
+    return this.#generateTokens(user.id, user.email, user.role);
   }
 
   async login(dto: LoginDto): Promise<{
@@ -66,7 +67,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.generateTokens(user.id, user.email, user.role);
+    return this.#generateTokens(user.id, user.email, user.role);
   }
 
   async refresh(
@@ -82,7 +83,7 @@ export class AuthService {
     }
 
     await this.prisma.refreshToken.delete({ where: { token } });
-    return this.generateTokens(
+    return this.#generateTokens(
       stored.user.id,
       stored.user.email,
       stored.user.role,
@@ -93,15 +94,14 @@ export class AuthService {
     await this.prisma.refreshToken.deleteMany({ where: { token } });
   }
 
-  private async generateTokens(
+  async #generateTokens(
     userId: string,
     email: string,
     role: string,
-  ): Promise<{
-    accessToken: string;
-    refreshToken: string;
-  }> {
-    const payload = { sub: userId, email, role };
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const jti = randomUUID();
+    const payload = { sub: userId, email, role, jti };
+
     const accessToken = this.jwt.sign(payload, {
       secret: this.config.get('JWT_ACCESS_SECRET', { infer: true }),
       expiresIn: this.config.get('JWT_ACCESS_EXPIRES_IN', {
