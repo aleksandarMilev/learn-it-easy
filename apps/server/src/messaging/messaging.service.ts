@@ -7,12 +7,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { CreateConversationDto } from './dto/create-conversation.dto';
 import type { SendMessageDto } from './dto/send-message.dto';
 import { type Conversation, type Message } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import { ConversationWithDetails } from './types/conversation-with-details.type';
 import { MessageWithSender } from './types/message-with-sender.type';
 
 @Injectable()
 export class MessagingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async createConversation(
     studentId: string,
@@ -125,6 +129,18 @@ export class MessagingService {
       where: { id: dto.conversationId },
       data: { updatedAt: new Date() },
     });
+
+    const recipientId =
+      conversation.studentId === senderId
+        ? conversation.tutorId
+        : conversation.studentId;
+
+    const senderProfile = message.sender.profile;
+    const senderName = senderProfile
+      ? `${senderProfile.firstName} ${senderProfile.lastName}`
+      : 'Someone';
+
+    await this.notificationsService.notifyNewMessage(recipientId, senderName);
 
     return message;
   }

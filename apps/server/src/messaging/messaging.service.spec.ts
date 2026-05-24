@@ -3,6 +3,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { MessagingService } from './messaging.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { faker } from '@faker-js/faker';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const mockConversation = (overrides = {}) => ({
@@ -44,6 +45,10 @@ const mockPrismaService = {
   },
 };
 
+const mockNotificationsService = {
+  notifyNewMessage: jest.fn().mockResolvedValue(undefined),
+};
+
 describe('MessagingService', () => {
   let service: MessagingService;
 
@@ -52,6 +57,7 @@ describe('MessagingService', () => {
       providers: [
         MessagingService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: NotificationsService, useValue: mockNotificationsService },
       ],
     }).compile();
 

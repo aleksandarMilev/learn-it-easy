@@ -8,6 +8,7 @@ import { BookingsService } from './bookings.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BookingStatus, Role } from '@prisma/client';
 import { faker } from '@faker-js/faker';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const mockTutor = () => ({
@@ -17,6 +18,13 @@ const mockTutor = () => ({
   hourlyRate: 50,
   isApproved: true,
   deletedAt: null,
+  user: {
+    id: faker.string.uuid(),
+    profile: {
+      firstName: 'John',
+      lastName: 'Doe',
+    },
+  },
 });
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -32,8 +40,17 @@ const mockBooking = (overrides = {}) => ({
   createdAt: new Date(),
   updatedAt: new Date(),
   deletedAt: null,
-  tutor: mockTutor(),
-  student: { id: faker.string.uuid(), profile: null },
+  tutor: {
+    ...mockTutor(),
+    user: {
+      id: faker.string.uuid(),
+      profile: { firstName: 'John', lastName: 'Doe' },
+    },
+  },
+  student: {
+    id: faker.string.uuid(),
+    profile: { firstName: 'Jane', lastName: 'Smith' },
+  },
   ...overrides,
 });
 
@@ -47,6 +64,12 @@ const mockPrismaService = {
   },
 };
 
+const mockNotificationsService = {
+  notifyBookingCreated: jest.fn().mockResolvedValue(undefined),
+  notifyBookingConfirmed: jest.fn().mockResolvedValue(undefined),
+  notifyBookingCancelled: jest.fn().mockResolvedValue(undefined),
+};
+
 describe('BookingsService', () => {
   let service: BookingsService;
 
@@ -55,6 +78,7 @@ describe('BookingsService', () => {
       providers: [
         BookingsService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: NotificationsService, useValue: mockNotificationsService },
       ],
     }).compile();
 

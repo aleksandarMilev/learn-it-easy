@@ -8,12 +8,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { CreateBookingDto } from './dto/create-booking.dto';
 import type { UpdateBookingDto } from './dto/update-booking.dto';
 import { BookingStatus, Role, type Booking } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import { BookingWithRelations } from './types/booking-with-relations.type';
 import { BookingWithFullRelations } from './types/booking-with-full-relations.type';
 
 @Injectable()
 export class BookingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async create(
     studentId: string,
@@ -21,6 +25,7 @@ export class BookingsService {
   ): Promise<BookingWithRelations> {
     const tutor = await this.prisma.tutorProfile.findFirst({
       where: { id: dto.tutorId, isApproved: true, deletedAt: null },
+      include: { user: { select: { id: true, profile: true } } },
     });
 
     if (!tutor) {
@@ -40,7 +45,7 @@ export class BookingsService {
 
     await this.checkConflict(dto.tutorId, startTime, endTime);
 
-    return this.prisma.booking.create({
+    const booking = await this.prisma.booking.create({
       data: {
         studentId,
         tutorId: dto.tutorId,
@@ -54,6 +59,19 @@ export class BookingsService {
         student: { select: { id: true, profile: true } },
       },
     });
+
+    const studentProfile = booking.student.profile;
+    const studentName = studentProfile
+      ? `${studentProfile.firstName} ${studentProfile.lastName}`
+      : 'A student';
+
+    await this.notificationsService.notifyBookingCreated(
+      tutor.user.id,
+      studentName,
+      dto.subject,
+    );
+
+    return booking;
   }
 
   findAll(userId: string, role: Role): Promise<BookingWithRelations[]> {
@@ -113,7 +131,10 @@ export class BookingsService {
   ): Promise<Booking> {
     const booking = await this.prisma.booking.findFirst({
       where: { id, deletedAt: null },
-      include: { tutor: true },
+      include: {
+        tutor: { include: { user: { select: { id: true, profile: true } } } },
+        student: { select: { id: true, profile: true } },
+      },
     });
 
     if (!booking) {
@@ -137,10 +158,33 @@ export class BookingsService {
       throw new ForbiddenException('Access denied');
     }
 
-    return this.prisma.booking.update({
+    const updated = await this.prisma.booking.update({
       where: { id },
       data: { status: dto.status },
     });
+
+    const tutorProfile = booking.tutor.user.profile;
+    const tutorName = tutorProfile
+      ? `${tutorProfile.firstName} ${tutorProfile.lastName}`
+      : 'Your tutor';
+
+    if (dto.status === BookingStatus.CONFIRMED) {
+      await this.notificationsService.notifyBookingConfirmed(
+        booking.studentId,
+        tutorName,
+        booking.subject,
+      );
+    }
+
+    if (dto.status === BookingStatus.CANCELLED) {
+      const otherUserId = isStudent ? booking.tutor.userId : booking.studentId;
+      await this.notificationsService.notifyBookingCancelled(
+        otherUserId,
+        booking.subject,
+      );
+    }
+
+    return updated;
   }
 
   async softDelete(id: string, userId: string, role: Role): Promise<Booking> {
