@@ -1,6 +1,6 @@
 # LearnItEasy
 
-A full-stack tutoring platform connecting students with tutors. Built as a portfolio project to demonstrate modern full-stack development practices.
+A full-stack tutoring platform connecting students with tutors.
 
 ## Live Demo
 
