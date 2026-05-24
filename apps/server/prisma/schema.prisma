@@ -13,36 +13,103 @@ enum Role {
     ADMIN
 }
 
-model User {
-    id        String   @id @default(uuid())
-    email     String   @unique
-    password  String
-    role      Role     @default(STUDENT)
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
 
-    profile       Profile?
-    refreshTokens RefreshToken[]
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  role          Role           @default(STUDENT)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+
+  profile       Profile?
+  refreshTokens RefreshToken[]
+  tutorProfile  TutorProfile?
+  studentBookings Booking[]    @relation("StudentBookings")
+}
+
+model TutorProfile {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  subjects    String[]
+  hourlyRate  Decimal
+  bio         String?
+  isApproved  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availability Availability[]
+  bookings     Booking[]
+}
+
+model Availability {
+  id          String   @id @default(uuid())
+  tutorId     String
+  dayOfWeek   Int
+  startTime   String
+  endTime     String
+  createdAt   DateTime @default(now())
+
+  tutor       TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+}
+
+model Booking {
+  id          String        @id @default(uuid())
+  studentId   String
+  tutorId     String
+  startTime   DateTime
+  endTime     DateTime
+  status      BookingStatus @default(PENDING)
+  subject     String
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  student     User         @relation("StudentBookings", fields: [studentId], references: [id])
+  tutor       TutorProfile @relation(fields: [tutorId], references: [id])
+  review      Review?
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  bookingId String   @unique
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
 model Profile {
-    id        String   @id @default(uuid())
-    firstName String
-    lastName  String
-    bio       String?
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id        String    @id @default(uuid())
+  firstName String
+  lastName  String
+  bio       String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-    userId String @unique
-    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model RefreshToken {
-    id        String   @id @default(uuid())
-    token     String   @unique
-    userId    String
-    expiresAt DateTime
-    createdAt DateTime @default(now())
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

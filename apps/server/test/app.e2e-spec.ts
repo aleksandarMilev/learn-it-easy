@@ -125,4 +125,32 @@ describe('App (e2e)', () => {
         .expect(201);
     });
   });
+
+  describe('Bookings', () => {
+    it('/api/v1/bookings (POST) - should fail without auth', () => {
+      return request(app.getHttpServer()).post('/api/v1/bookings').expect(401);
+    });
+
+    it('/api/v1/bookings (GET) - should fail without auth', () => {
+      return request(app.getHttpServer()).get('/api/v1/bookings').expect(401);
+    });
+
+    it('/api/v1/bookings (POST) - should fail with invalid data', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send({
+          email: faker.internet.email(),
+          password: 'Password123!',
+          firstName: faker.person.firstName(),
+          lastName: faker.person.lastName(),
+          role: Role.STUDENT,
+        });
+
+      return request(app.getHttpServer())
+        .post('/api/v1/bookings')
+        .set('Authorization', `Bearer ${res.body.accessToken}`)
+        .send({})
+        .expect(400);
+    });
+  });
 });
