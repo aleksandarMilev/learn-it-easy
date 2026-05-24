@@ -1,9 +1,15 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
+import type { Env } from './config/env.validation';
 
-async function bootstrap(): Promise<void> {
+void (async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.PORT ?? 3_000);
-}
+  const config = app.get(ConfigService<Env, true>);
+  const port = config.get('PORT', { infer: true });
 
-void bootstrap();
+  await app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
+})();
