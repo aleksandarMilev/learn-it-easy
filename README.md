@@ -2,10 +2,6 @@
 
 A full-stack tutoring platform connecting students with tutors.
 
-## Live Demo
-
-> Coming soon
-
 ## Tech Stack
 
 ### Backend
