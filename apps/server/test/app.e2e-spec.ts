@@ -153,4 +153,136 @@ describe('App (e2e)', () => {
         .expect(400);
     });
   });
+
+  describe('Tutors & Bookings', () => {
+    const student = {
+      email: faker.internet.email(),
+      password: 'Password123!',
+      firstName: faker.person.firstName(),
+      lastName: faker.person.lastName(),
+      role: Role.STUDENT,
+    };
+
+    const tutor = {
+      email: faker.internet.email(),
+      password: 'Password123!',
+      firstName: faker.person.firstName(),
+      lastName: faker.person.lastName(),
+      role: Role.TUTOR,
+    };
+
+    let studentToken: string;
+    let tutorToken: string;
+    let tutorProfileId: string;
+    let bookingId: string;
+
+    beforeAll(async () => {
+      const studentRes = await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send(student);
+      studentToken = studentRes.body.accessToken;
+
+      const tutorRes = await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send(tutor);
+      tutorToken = tutorRes.body.accessToken;
+    });
+
+    it('/api/v1/tutors (GET) - should return empty list', () => {
+      return request(app.getHttpServer())
+        .get('/api/v1/tutors')
+        .expect(200)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+        });
+    });
+
+    it('/api/v1/tutors/profile (POST) - should create tutor profile', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/tutors/profile')
+        .set('Authorization', `Bearer ${tutorToken}`)
+        .send({
+          subjects: ['Mathematics'],
+          hourlyRate: 50,
+          bio: 'Experienced tutor',
+        })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('id');
+          expect(res.body.isApproved).toBe(false);
+          tutorProfileId = res.body.id;
+        });
+    });
+
+    it('/api/v1/tutors/profile (POST) - should fail with duplicate profile', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/tutors/profile')
+        .set('Authorization', `Bearer ${tutorToken}`)
+        .send({ subjects: ['Mathematics'], hourlyRate: 50 })
+        .expect(409);
+    });
+
+    it('/api/v1/tutors/:id/approve (POST) - should fail for non-admin', () => {
+      return request(app.getHttpServer())
+        .post(`/api/v1/tutors/${tutorProfileId}/approve`)
+        .set('Authorization', `Bearer ${tutorToken}`)
+        .expect(403);
+    });
+
+    it('/api/v1/tutors/availability (POST) - should set availability', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/tutors/availability')
+        .set('Authorization', `Bearer ${tutorToken}`)
+        .send({ dayOfWeek: 1, startTime: '09:00', endTime: '17:00' })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('id');
+          expect(res.body.dayOfWeek).toBe(1);
+        });
+    });
+
+    it('/api/v1/tutors/:id/availability (GET) - should get availability', () => {
+      return request(app.getHttpServer())
+        .get(`/api/v1/tutors/${tutorProfileId}/availability`)
+        .expect(200)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+        });
+    });
+
+    it('/api/v1/bookings (POST) - should fail without auth', () => {
+      return request(app.getHttpServer()).post('/api/v1/bookings').expect(401);
+    });
+
+    it('/api/v1/bookings (POST) - should fail with invalid data', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/bookings')
+        .set('Authorization', `Bearer ${studentToken}`)
+        .send({})
+        .expect(400);
+    });
+
+    it('/api/v1/bookings (POST) - should fail booking unapproved tutor', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/bookings')
+        .set('Authorization', `Bearer ${studentToken}`)
+        .send({
+          tutorId: tutorProfileId,
+          startTime: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
+          endTime: new Date(Date.now() + 1000 * 60 * 60 * 25).toISOString(),
+          subject: 'Mathematics',
+        })
+        .expect(404);
+    });
+
+    it('/api/v1/bookings (GET) - should return empty list for student', () => {
+      return request(app.getHttpServer())
+        .get('/api/v1/bookings')
+        .set('Authorization', `Bearer ${studentToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+        });
+    });
+  });
 });
