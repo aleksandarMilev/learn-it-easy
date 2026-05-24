@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { messagingApi } from '@/api/messaging.api';
 import { useSocket } from '@/hooks/useSocket';
 import { useAuthStore } from '@/store/auth.store';
@@ -13,7 +13,7 @@ export function ConversationPage() {
   const socket = useSocket();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [content, setContent] = useState('');
-  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  const [extraMessages, setExtraMessages] = useState<Message[]>([]);
 
   const { data: messages } = useQuery({
     queryKey: ['messages', id],
@@ -21,9 +21,10 @@ export function ConversationPage() {
     enabled: !!id,
   });
 
-  useEffect(() => {
-    if (messages) setLocalMessages(messages);
-  }, [messages]);
+  const allMessages = useMemo(
+    () => [...(messages ?? []), ...extraMessages],
+    [messages, extraMessages],
+  );
 
   useEffect(() => {
     if (!socket || !id) {
@@ -31,8 +32,9 @@ export function ConversationPage() {
     }
 
     socket.emit('joinConversation', id);
+
     socket.on('receiveMessage', (message: Message) => {
-      setLocalMessages((prev) => [...prev, message]);
+      setExtraMessages((prev) => [...prev, message]);
     });
 
     return () => {
@@ -42,7 +44,7 @@ export function ConversationPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [localMessages]);
+  }, [allMessages]);
 
   const handleSend = () => {
     if (!content.trim() || !socket) {
@@ -63,7 +65,7 @@ export function ConversationPage() {
   return (
     <div className="mx-auto flex h-[calc(100vh-8rem)] max-w-2xl flex-col">
       <div className="flex-1 space-y-4 overflow-y-auto rounded-t-xl border border-b-0 border-gray-200 bg-white p-6">
-        {localMessages.map((message) => {
+        {allMessages.map((message) => {
           const isMe = message.senderId === user?.id;
           return (
             <div key={message.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
