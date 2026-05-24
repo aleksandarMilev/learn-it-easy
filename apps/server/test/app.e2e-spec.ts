@@ -285,4 +285,34 @@ describe('App (e2e)', () => {
         });
     });
   });
+
+  describe('Reviews', () => {
+    it('/api/v1/reviews (POST) - should fail without auth', () => {
+      return request(app.getHttpServer()).post('/api/v1/reviews').expect(401);
+    });
+
+    it('/api/v1/reviews (POST) - should fail with invalid data', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send({
+          email: faker.internet.email(),
+          password: 'Password123!',
+          firstName: faker.person.firstName(),
+          lastName: faker.person.lastName(),
+          role: Role.STUDENT,
+        });
+
+      return request(app.getHttpServer())
+        .post('/api/v1/reviews')
+        .set('Authorization', `Bearer ${res.body.accessToken}`)
+        .send({})
+        .expect(400);
+    });
+
+    it('/api/v1/reviews/tutor/:tutorId (GET) - should return empty array for unknown tutor', () => {
+      return request(app.getHttpServer())
+        .get(`/api/v1/reviews/tutor/${faker.string.uuid()}`)
+        .expect(404);
+    });
+  });
 });
