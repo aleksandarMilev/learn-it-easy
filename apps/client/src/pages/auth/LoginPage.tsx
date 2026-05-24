@@ -8,7 +8,7 @@ import { usersApi } from '@/api/users.api';
 import { useAuthStore } from '@/store/auth.store';
 
 const schema = z.object({
-  email: z.string().email('Invalid email'),
+  email: z.email('Invalid email'),
   password: z.string().min(1, 'Password is required'),
 });
 
