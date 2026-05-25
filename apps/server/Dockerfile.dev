@@ -14,4 +14,4 @@ COPY apps/server/ ./apps/server/
 
 WORKDIR /app/apps/server
 
-CMD ["sh", "-c", "/app/node_modules/.pnpm/node_modules/.bin/prisma generate --schema=./prisma/schema.prisma && /app/node_modules/.pnpm/node_modules/.bin/prisma migrate deploy --schema=./prisma/schema.prisma && pnpm run start:dev"]
+CMD ["sh", "-c", "export PATH=\"/app/node_modules/.pnpm/node_modules/.bin:/app/node_modules/.bin:$PATH\" && prisma generate --schema=./prisma/schema.prisma && prisma migrate deploy --schema=./prisma/schema.prisma && prisma db seed && pnpm run start:dev"]

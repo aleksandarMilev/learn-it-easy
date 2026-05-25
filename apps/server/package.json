@@ -22,7 +22,11 @@
     "prisma:migrate": "dotenv -e ../../.env.dev -- prisma migrate dev",
     "prisma:generate": "dotenv -e ../../.env.dev -- prisma generate",
     "prisma:studio": "dotenv -e ../../.env.dev -- prisma studio",
+    "db:seed": "dotenv -e ../../.env.dev -- prisma db seed",
     "pre-commit": "pnpm run build && pnpm run lint && pnpm run test && pnpm run test:e2e"
+  },
+  "prisma": {
+    "seed": "ts-node --project tsconfig.seed.json prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.4",

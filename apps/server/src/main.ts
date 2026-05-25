@@ -28,5 +28,6 @@ void (async function bootstrap(): Promise<void> {
 
   const configService = app.get(ConfigService<Env, true>);
   const port = configService.get('PORT', { infer: true });
+
   await app.listen(port);
 })();
