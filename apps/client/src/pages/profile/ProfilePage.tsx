@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslation } from 'react-i18next';
 import { Camera, User, GraduationCap, Clock, AlertCircle } from 'lucide-react';
 import { usersApi } from '@/api/users.api';
 import { tutorsApi } from '@/api/tutors.api';
@@ -10,24 +11,17 @@ import { useAuthStore } from '@/store/auth.store';
 import { useToast } from '@/store/toast.store';
 import { Avatar } from '@/components/ui/Avatar';
 
-const profileSchema = z.object({
-  firstName: z.string().min(1, 'Required'),
-  lastName: z.string().min(1, 'Required'),
-  bio: z.string().optional(),
-});
+type ProfileFormData = {
+  firstName: string;
+  lastName: string;
+  bio?: string;
+};
 
-const tutorSchema = z.object({
-  subjects: z.string().min(1, 'At least one subject required'),
-  hourlyRate: z
-    .string()
-    .min(1, 'Required')
-    .transform((v) => Number(v))
-    .pipe(z.number().min(1, 'Must be at least 1')),
-  bio: z.string().optional(),
-});
-
-type ProfileFormData = z.infer<typeof profileSchema>;
-type TutorFormData = z.infer<typeof tutorSchema>;
+type TutorFormData = {
+  subjects: string;
+  hourlyRate: number;
+  bio?: string;
+};
 
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20';
@@ -45,11 +39,28 @@ export function ProfilePage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const toast = useToast();
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
+
+  const profileSchema = z.object({
+    firstName: z.string().min(1, t('common.required')),
+    lastName: z.string().min(1, t('common.required')),
+    bio: z.string().optional(),
+  });
+
+  const tutorSchema = z.object({
+    subjects: z.string().min(1, t('profile.subjectsRequired')),
+    hourlyRate: z
+      .string()
+      .min(1, t('common.required'))
+      .transform((value) => Number(value))
+      .pipe(z.number().min(1, t('profile.hourlyRateMin'))),
+    bio: z.string().optional(),
+  });
 
   const {
     data: profile,
@@ -68,7 +79,7 @@ export function ProfilePage() {
     queryKey: ['tutor-profile-me'],
     queryFn: tutorsApi.getAll,
     enabled: user?.role === 'TUTOR',
-    select: (tutors) => tutors.find((t) => t.userId === user?.id),
+    select: (tutors) => tutors.find((tutor) => tutor.userId === user?.id),
   });
 
   const profileForm = useForm<ProfileFormData>({
@@ -93,9 +104,9 @@ export function ProfilePage() {
     mutationFn: usersApi.updateMe,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['me'] });
-      toast.success('Profile updated!');
+      toast.success(t('profile.profileUpdated'));
     },
-    onError: () => toast.error('Failed to update profile. Please try again.'),
+    onError: () => toast.error(t('profile.profileUpdateFailed')),
   });
 
   const tutorMutation = useMutation({
@@ -103,7 +114,7 @@ export function ProfilePage() {
       const payload = {
         subjects: data.subjects
           .split(',')
-          .map((s) => s.trim())
+          .map((subject) => subject.trim())
           .filter(Boolean),
         hourlyRate: data.hourlyRate,
         bio: data.bio,
@@ -112,9 +123,9 @@ export function ProfilePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tutor-profile-me'] });
-      toast.success('Tutor profile saved!');
+      toast.success(t('profile.tutorProfileSaved'));
     },
-    onError: () => toast.error('Failed to save tutor profile. Please try again.'),
+    onError: () => toast.error(t('profile.tutorProfileFailed')),
   });
 
   const availabilityForm = useForm({
@@ -125,29 +136,29 @@ export function ProfilePage() {
     mutationFn: tutorsApi.createAvailability,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tutor-profile-me'] });
-      toast.success('Availability added!');
+      toast.success(t('profile.availabilityAdded'));
     },
-    onError: () => toast.error('Already have availability for this day.'),
+    onError: () => toast.error(t('profile.availabilityFailed')),
   });
 
   const uploadAvatarMutation = useMutation({
     mutationFn: (file: File) => usersApi.uploadAvatar(file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['me'] });
-      toast.success('Avatar updated!');
+      toast.success(t('profile.avatarUpdated'));
       setPreviewUrl(null);
       setPendingFile(null);
     },
-    onError: () => toast.error('Failed to upload avatar. Check file size and format.'),
+    onError: () => toast.error(t('profile.avatarFailed')),
   });
 
   const removeAvatarMutation = useMutation({
     mutationFn: usersApi.removeAvatar,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['me'] });
-      toast.info('Profile photo removed');
+      toast.info(t('profile.avatarRemoved'));
     },
-    onError: () => toast.error('Failed to remove photo'),
+    onError: () => toast.error(t('profile.avatarRemoveFailed')),
   });
 
   const handleTutorSubmit = (raw: { subjects: string; hourlyRate: string; bio?: string }) => {
@@ -166,15 +177,16 @@ export function ProfilePage() {
 
     setPreviewError(null);
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Image must be smaller than 2MB');
-      setPreviewError('Image must be smaller than 2MB');
+    const maxSizeBytes = 2 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      toast.error(t('profile.imageTooLarge'));
+      setPreviewError(t('profile.imageTooLarge'));
       return;
     }
 
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image file');
-      setPreviewError('Please select a valid image file');
+      toast.error(t('profile.imageInvalidFormat'));
+      setPreviewError(t('profile.imageInvalidFormat'));
       return;
     }
 
@@ -218,25 +230,26 @@ export function ProfilePage() {
   if (isProfileError || isTutorProfileError) {
     return (
       <div className="flex items-center justify-center py-24">
-        <p className="text-sm text-red-500">Something went wrong. Please try again.</p>
+        <p className="text-sm text-red-500">{t('errors.somethingWentWrong')}</p>
       </div>
     );
   }
 
-  const roleName = user?.role
-    ? user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase()
-    : '';
+  const roleKey = user?.role?.toLowerCase() as 'student' | 'tutor' | 'admin' | undefined;
+  const roleName = roleKey ? t(`common.role.${roleKey}`) : '';
 
   const avatarProfile = previewUrl
     ? { firstName: profile?.profile?.firstName, avatarUrl: previewUrl }
     : { firstName: profile?.profile?.firstName, avatarUrl: currentAvatarUrl };
 
+  const dayOptions = [0, 1, 2, 3, 4, 5, 6] as const;
+
   return (
     <div className="animate-fade-in-up mx-auto max-w-2xl space-y-8">
-      <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
+      <h1 className="text-2xl font-bold text-gray-900">{t('profile.title')}</h1>
 
       <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
-        <SectionHeader icon={User} title="Account details" />
+        <SectionHeader icon={User} title={t('profile.accountDetails')} />
 
         <div className="mb-6 flex items-center gap-4">
           <div className="flex flex-col items-center gap-2">
@@ -265,14 +278,14 @@ export function ProfilePage() {
                   disabled={uploadAvatarMutation.isPending}
                   className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
                 >
-                  {uploadAvatarMutation.isPending ? 'Saving...' : 'Save photo'}
+                  {uploadAvatarMutation.isPending ? t('common.submitting') : t('profile.savePhoto')}
                 </button>
                 <button
                   onClick={handleCancelPreview}
                   disabled={uploadAvatarMutation.isPending}
                   className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             )}
@@ -283,7 +296,7 @@ export function ProfilePage() {
                 disabled={removeAvatarMutation.isPending}
                 className="text-xs text-red-500 transition-colors hover:text-red-700 disabled:opacity-50"
               >
-                {removeAvatarMutation.isPending ? 'Removing...' : 'Remove photo'}
+                {removeAvatarMutation.isPending ? t('profile.removing') : t('profile.removePhoto')}
               </button>
             )}
 
@@ -306,7 +319,9 @@ export function ProfilePage() {
         >
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">First name</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                {t('auth.firstName')}
+              </label>
               <input {...profileForm.register('firstName')} className={inputClass} />
               {profileForm.formState.errors.firstName && (
                 <p className="mt-1 text-xs text-red-500">
@@ -315,7 +330,9 @@ export function ProfilePage() {
               )}
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Last name</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                {t('auth.lastName')}
+              </label>
               <input {...profileForm.register('lastName')} className={inputClass} />
               {profileForm.formState.errors.lastName && (
                 <p className="mt-1 text-xs text-red-500">
@@ -327,13 +344,14 @@ export function ProfilePage() {
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">
-              Bio <span className="font-normal text-gray-400">(optional)</span>
+              {t('profile.bio')}{' '}
+              <span className="font-normal text-gray-400">{t('profile.bioOptional')}</span>
             </label>
             <textarea
               {...profileForm.register('bio')}
               rows={3}
               className={inputClass}
-              placeholder="Tell students a bit about yourself…"
+              placeholder={t('profile.bioPlaceholder')}
             />
           </div>
 
@@ -342,7 +360,7 @@ export function ProfilePage() {
             disabled={profileMutation.isPending}
             className="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
           >
-            {profileMutation.isPending ? 'Saving…' : 'Save changes'}
+            {profileMutation.isPending ? t('profile.saving') : t('profile.saveChanges')}
           </button>
         </form>
       </div>
@@ -352,30 +370,31 @@ export function ProfilePage() {
           <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
             <SectionHeader
               icon={GraduationCap}
-              title={tutorProfile ? 'Tutor profile' : 'Create tutor profile'}
+              title={tutorProfile ? t('profile.tutorProfileTitle') : t('profile.createTutorProfileTitle')}
             />
 
             {tutorProfile && !tutorProfile.isApproved && (
               <div className="mb-5 flex items-center gap-2 rounded-lg bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                Your profile is pending admin approval.
+                {t('profile.pendingApproval')}
               </div>
             )}
 
             <form onSubmit={tutorForm.handleSubmit(handleTutorSubmit)} className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Subjects <span className="font-normal text-gray-400">(comma separated)</span>
+                  {t('profile.subjects')}{' '}
+                  <span className="font-normal text-gray-400">{t('profile.subjectsOptional')}</span>
                 </label>
                 <input
                   {...tutorForm.register('subjects')}
-                  placeholder="Mathematics, Physics, Chemistry"
+                  placeholder={t('profile.subjectsPlaceholder')}
                   className={inputClass}
                 />
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Hourly rate ($)
+                  {t('profile.hourlyRate')}
                 </label>
                 <input
                   {...tutorForm.register('hourlyRate')}
@@ -386,13 +405,14 @@ export function ProfilePage() {
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Bio <span className="font-normal text-gray-400">(optional)</span>
+                  {t('profile.bio')}{' '}
+                  <span className="font-normal text-gray-400">{t('profile.bioOptional')}</span>
                 </label>
                 <textarea
                   {...tutorForm.register('bio')}
                   rows={3}
                   className={inputClass}
-                  placeholder="Tell students about your teaching style and experience…"
+                  placeholder={t('profile.bioPlaceholder')}
                 />
               </div>
 
@@ -402,16 +422,16 @@ export function ProfilePage() {
                 className="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
               >
                 {tutorMutation.isPending
-                  ? 'Saving…'
+                  ? t('profile.saving')
                   : tutorProfile
-                    ? 'Update profile'
-                    : 'Create profile'}
+                    ? t('profile.updateButton')
+                    : t('profile.createButton')}
               </button>
             </form>
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
-            <SectionHeader icon={Clock} title="Add availability" />
+            <SectionHeader icon={Clock} title={t('profile.addAvailability')} />
 
             <form
               onSubmit={availabilityForm.handleSubmit((data) => availabilityMutation.mutate(data))}
@@ -419,28 +439,24 @@ export function ProfilePage() {
             >
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Day</label>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    {t('profile.day')}
+                  </label>
                   <select
                     {...availabilityForm.register('dayOfWeek', { valueAsNumber: true })}
                     className={inputClass}
                   >
-                    {[
-                      'Sunday',
-                      'Monday',
-                      'Tuesday',
-                      'Wednesday',
-                      'Thursday',
-                      'Friday',
-                      'Saturday',
-                    ].map((day, i) => (
-                      <option key={day} value={i}>
-                        {day}
+                    {dayOptions.map((dayIndex) => (
+                      <option key={dayIndex} value={dayIndex}>
+                        {t(`profile.days.${dayIndex}`)}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Start</label>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    {t('profile.startTime')}
+                  </label>
                   <input
                     {...availabilityForm.register('startTime')}
                     type="time"
@@ -448,7 +464,9 @@ export function ProfilePage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">End</label>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    {t('profile.endTime')}
+                  </label>
                   <input
                     {...availabilityForm.register('endTime')}
                     type="time"
@@ -462,7 +480,7 @@ export function ProfilePage() {
                 disabled={availabilityMutation.isPending}
                 className="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
               >
-                {availabilityMutation.isPending ? 'Adding…' : 'Add availability'}
+                {availabilityMutation.isPending ? t('profile.adding') : t('profile.addAvailabilityButton')}
               </button>
             </form>
           </div>

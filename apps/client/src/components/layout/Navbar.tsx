@@ -1,5 +1,6 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   GraduationCap,
@@ -15,19 +16,21 @@ import { notificationsApi } from '@/api/notifications.api';
 import { usersApi } from '@/api/users.api';
 import { useToast } from '@/store/toast.store';
 import { Avatar } from '@/components/ui/Avatar';
-
-const navLinks = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/tutors', label: 'Tutors', icon: GraduationCap },
-  { to: '/bookings', label: 'Bookings', icon: CalendarDays },
-  { to: '/messages', label: 'Messages', icon: MessageSquare },
-] as const;
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 
 export function Navbar() {
   const { user, refreshToken, logout, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
+  const { t } = useTranslation();
+
+  const navLinks = [
+    { to: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
+    { to: '/tutors', label: t('nav.tutors'), icon: GraduationCap },
+    { to: '/bookings', label: t('nav.bookings'), icon: CalendarDays },
+    { to: '/messages', label: t('nav.messages'), icon: MessageSquare },
+  ];
 
   const { data: unreadCount } = useQuery({
     queryKey: ['notifications', 'unread'],
@@ -47,7 +50,7 @@ export function Navbar() {
       await authApi.logout(refreshToken).catch(() => {});
     }
     logout();
-    toast.info('You have been logged out');
+    toast.info(t('toast.loggedOut'));
     navigate('/login');
   };
 
@@ -93,7 +96,7 @@ export function Navbar() {
                   }`}
                 >
                   <Bell className="h-4 w-4" />
-                  Notifications
+                  {t('nav.notifications')}
                   {unreadCount && unreadCount.count > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
                       {unreadCount.count > 9 ? '9+' : unreadCount.count}
@@ -111,32 +114,36 @@ export function Navbar() {
                     }`}
                   >
                     <Shield className="h-4 w-4" />
-                    Admin
+                    {t('nav.admin')}
                   </Link>
                 )}
               </div>
             )}
           </div>
 
-          {isAuthenticated && (
-            <div className="flex items-center gap-2">
-              <Link
-                to="/profile"
-                className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50"
-              >
-                <Avatar profile={me?.profile ?? null} size="sm" />
-                <span className="hidden max-w-40 truncate sm:block">{user?.email}</span>
-              </Link>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
 
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:block">Log out</span>
-              </button>
-            </div>
-          )}
+            {isAuthenticated && (
+              <>
+                <Link
+                  to="/profile"
+                  className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50"
+                >
+                  <Avatar profile={me?.profile ?? null} size="sm" />
+                  <span className="hidden max-w-40 truncate sm:block">{user?.email}</span>
+                </Link>
+
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:block">{t('nav.logout')}</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </nav>

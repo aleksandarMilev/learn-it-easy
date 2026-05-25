@@ -3,18 +3,17 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { GraduationCap, Users, Star } from 'lucide-react';
 import { authApi } from '@/api/auth.api';
 import { usersApi } from '@/api/users.api';
 import { useAuthStore } from '@/store/auth.store';
 import { useToast } from '@/store/toast.store';
 
-const schema = z.object({
-  email: z.email('Invalid email'),
-  password: z.string().min(1, 'Password is required'),
-});
-
-type FormData = z.infer<typeof schema>;
+type FormData = {
+  email: string;
+  password: string;
+};
 
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20';
@@ -23,6 +22,12 @@ export function LoginPage() {
   const navigate = useNavigate();
   const { setTokens, setUser } = useAuthStore();
   const toast = useToast();
+  const { t } = useTranslation();
+
+  const schema = z.object({
+    email: z.email(t('auth.validation.emailRequired')),
+    password: z.string().min(1, t('auth.validation.passwordRequired')),
+  });
 
   const {
     register,
@@ -36,10 +41,10 @@ export function LoginPage() {
       setTokens(data.accessToken, data.refreshToken);
       const user = await usersApi.getMe();
       setUser({ id: user.id, email: user.email, role: user.role });
-      toast.success('Welcome back!');
+      toast.success(t('toast.welcomeBack'));
       navigate('/dashboard');
     },
-    onError: () => toast.error('Invalid email or password. Please try again.'),
+    onError: () => toast.error(t('auth.invalidCredentials')),
   });
 
   return (
@@ -86,15 +91,15 @@ export function LoginPage() {
               <GraduationCap className="h-6 w-6 text-indigo-600" />
               <span className="text-lg font-bold text-indigo-600">LearnItEasy</span>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
-            <p className="mt-2 text-gray-500">Sign in to your account to continue</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('dashboard.welcomeBack')}</h1>
+            <p className="mt-2 text-gray-500">{t('auth.signIn')}</p>
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
             <form onSubmit={handleSubmit((data) => mutation.mutate(data))} className="space-y-5">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Email address
+                  {t('auth.email')}
                 </label>
                 <input
                   {...register('email')}
@@ -109,7 +114,9 @@ export function LoginPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  {t('auth.password')}
+                </label>
                 <input
                   {...register('password')}
                   type="password"
@@ -127,18 +134,18 @@ export function LoginPage() {
                 disabled={mutation.isPending}
                 className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {mutation.isPending ? 'Signing in...' : 'Sign in'}
+                {mutation.isPending ? t('auth.signingIn') : t('auth.signInButton')}
               </button>
             </form>
           </div>
 
           <p className="mt-6 text-center text-sm text-gray-500">
-            Don't have an account?{' '}
+            {t('auth.noAccount')}{' '}
             <Link
               to="/register"
               className="font-semibold text-indigo-600 transition-colors hover:text-indigo-700"
             >
-              Create one free
+              {t('auth.createAccount')}
             </Link>
           </p>
         </div>

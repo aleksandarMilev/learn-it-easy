@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { GraduationCap, Clock, ArrowRight } from 'lucide-react';
 import { tutorsApi } from '@/api/tutors.api';
 import { reviewsApi } from '@/api/reviews.api';
-import { getFullName, getDayName } from '@/lib/utils';
+import { getFullName } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
 import { StarRating } from '@/components/ui/StarRating';
 import type { Review } from '@/types';
@@ -39,13 +40,15 @@ function computeAverageRating(reviews: Review[]): number {
 }
 
 function TutorRatingDisplay({ tutorId }: { tutorId: string }) {
+  const { t } = useTranslation();
+
   const { data: reviews } = useQuery({
     queryKey: ['reviews', tutorId],
     queryFn: () => reviewsApi.getByTutor(tutorId),
   });
 
   if (!reviews || reviews.length === 0) {
-    return <span className="text-xs text-gray-400">No reviews yet</span>;
+    return <span className="text-xs text-gray-400">{t('tutors.noReviews')}</span>;
   }
 
   const averageRating = computeAverageRating(reviews);
@@ -59,6 +62,8 @@ function TutorRatingDisplay({ tutorId }: { tutorId: string }) {
 }
 
 export function TutorsPage() {
+  const { t } = useTranslation();
+
   const { data: tutors, isLoading, isError } = useQuery({
     queryKey: ['tutors'],
     queryFn: tutorsApi.getAll,
@@ -68,10 +73,8 @@ export function TutorsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Find a tutor</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Browse our approved tutors and book a session.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('tutors.title')}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t('tutors.subtitle')}</p>
         </div>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
@@ -85,7 +88,7 @@ export function TutorsPage() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-24">
-        <p className="text-sm text-red-500">Something went wrong. Please try again.</p>
+        <p className="text-sm text-red-500">{t('errors.somethingWentWrong')}</p>
       </div>
     );
   }
@@ -93,10 +96,8 @@ export function TutorsPage() {
   return (
     <div className="animate-fade-in-up space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Find a tutor</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Browse our approved tutors and book a session.
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('tutors.title')}</h1>
+        <p className="mt-1 text-sm text-gray-500">{t('tutors.subtitle')}</p>
       </div>
 
       {tutors?.length === 0 ? (
@@ -104,8 +105,8 @@ export function TutorsPage() {
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
             <GraduationCap className="h-7 w-7 text-gray-400" />
           </div>
-          <h3 className="font-semibold text-gray-900">No tutors available yet</h3>
-          <p className="mt-1 text-sm text-gray-500">Check back soon as more tutors join.</p>
+          <h3 className="font-semibold text-gray-900">{t('tutors.noTutors')}</h3>
+          <p className="mt-1 text-sm text-gray-500">{t('tutors.checkBack')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -122,7 +123,7 @@ export function TutorsPage() {
                   </h2>
                   <p className="mt-1 text-xl font-bold text-indigo-600">
                     ${tutor.hourlyRate}
-                    <span className="text-sm font-normal text-gray-400">/hr</span>
+                    <span className="text-sm font-normal text-gray-400">{t('common.perHour')}</span>
                   </p>
                 </div>
                 <Avatar profile={tutor.user.profile} size="md" />
@@ -151,13 +152,13 @@ export function TutorsPage() {
                 <div className="mt-4 border-t border-gray-100 pt-4">
                   <div className="flex items-center gap-1.5 text-xs text-gray-400">
                     <Clock className="h-3.5 w-3.5" />
-                    Available:
+                    {t('tutors.available')}
                   </div>
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {tutor.availability.map((availabilitySlot) => (
                       <span key={availabilitySlot.id} className="text-xs text-gray-500">
-                        {getDayName(availabilitySlot.dayOfWeek)} {availabilitySlot.startTime}–
-                        {availabilitySlot.endTime}
+                        {t(`profile.days.${availabilitySlot.dayOfWeek}`)}{' '}
+                        {availabilitySlot.startTime}–{availabilitySlot.endTime}
                       </span>
                     ))}
                   </div>
@@ -165,7 +166,7 @@ export function TutorsPage() {
               )}
 
               <div className="mt-4 flex items-center gap-1 text-xs font-medium text-indigo-600 opacity-0 transition-opacity group-hover:opacity-100">
-                View profile
+                {t('tutors.viewProfile')}
                 <ArrowRight className="h-3 w-3" />
               </div>
             </Link>

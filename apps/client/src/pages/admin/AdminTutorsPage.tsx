@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { GraduationCap, CheckCircle, Trash2 } from 'lucide-react';
 import { adminApi } from '@/api/admin.api';
 import { tutorsApi } from '@/api/tutors.api';
@@ -10,6 +11,7 @@ import type { TutorProfile } from '@/types';
 export function AdminTutorsPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { t } = useTranslation();
 
   const { data: tutors, isLoading, isError } = useQuery({
     queryKey: ['tutors'],
@@ -20,18 +22,18 @@ export function AdminTutorsPage() {
     mutationFn: (tutorId: string) => adminApi.approveTutor(tutorId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tutors'] });
-      toast.success('Tutor approved!');
+      toast.success(t('admin.tutorApproved'));
     },
-    onError: () => toast.error('Failed to approve tutor'),
+    onError: () => toast.error(t('admin.tutorApproveFailed')),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (tutorId: string) => adminApi.deleteTutor(tutorId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tutors'] });
-      toast.success('Tutor removed');
+      toast.success(t('admin.tutorRemoved'));
     },
-    onError: () => toast.error('Failed to remove tutor'),
+    onError: () => toast.error(t('admin.tutorRemoveFailed')),
   });
 
   if (isLoading) {
@@ -50,7 +52,7 @@ export function AdminTutorsPage() {
   if (isError) {
     return (
       <div className="flex items-center justify-center py-24">
-        <p className="text-sm text-red-500">Something went wrong. Please try again.</p>
+        <p className="text-sm text-red-500">{t('errors.somethingWentWrong')}</p>
       </div>
     );
   }
@@ -62,12 +64,12 @@ export function AdminTutorsPage() {
     <div className="animate-fade-in-up space-y-8">
       <div className="flex items-center gap-3">
         <GraduationCap className="h-6 w-6 text-gray-400" />
-        <h1 className="text-2xl font-bold text-gray-900">Tutors</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('admin.tutorsManagement')}</h1>
       </div>
 
       <section className="space-y-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-gray-900">Pending Approval</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('admin.pendingSection')}</h2>
           {pendingTutors.length > 0 && (
             <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
               {pendingTutors.length}
@@ -76,7 +78,7 @@ export function AdminTutorsPage() {
         </div>
 
         {pendingTutors.length === 0 ? (
-          <p className="text-sm text-gray-500">No tutors pending approval.</p>
+          <p className="text-sm text-gray-500">{t('admin.noTutors')}</p>
         ) : (
           <div className="space-y-3">
             {pendingTutors.map((tutor) => (
@@ -90,7 +92,7 @@ export function AdminTutorsPage() {
                     className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
                   >
                     <CheckCircle className="h-4 w-4" />
-                    Approve
+                    {t('admin.approveButton')}
                   </button>
                 }
               />
@@ -100,10 +102,10 @@ export function AdminTutorsPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Approved Tutors</h2>
+        <h2 className="text-lg font-semibold text-gray-900">{t('admin.approvedSection')}</h2>
 
         {approvedTutors.length === 0 ? (
-          <p className="text-sm text-gray-500">No approved tutors yet.</p>
+          <p className="text-sm text-gray-500">{t('admin.noApprovedTutors')}</p>
         ) : (
           <div className="space-y-3">
             {approvedTutors.map((tutor) => (
@@ -131,6 +133,8 @@ interface TutorCardProps {
 }
 
 function TutorCard({ tutor, actions }: TutorCardProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
       <div className="space-y-1.5">
@@ -141,10 +145,12 @@ function TutorCard({ tutor, actions }: TutorCardProps) {
               tutor.isApproved ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
             }`}
           >
-            {tutor.isApproved ? 'Approved' : 'Pending'}
+            {tutor.isApproved ? t('admin.approved') : t('admin.pending')}
           </span>
         </div>
-        <p className="text-sm text-indigo-600 font-semibold">${tutor.hourlyRate}/hr</p>
+        <p className="text-sm text-indigo-600 font-semibold">
+          ${tutor.hourlyRate}{t('common.perHour')}
+        </p>
         <div className="flex flex-wrap gap-1.5">
           {tutor.subjects.map((subject) => (
             <span
@@ -168,11 +174,12 @@ interface DeleteButtonProps {
 
 function DeleteButton({ onConfirm, isPending }: DeleteButtonProps) {
   const [isConfirming, setIsConfirming] = useState(false);
+  const { t } = useTranslation();
 
   if (isConfirming) {
     return (
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-600">Are you sure?</span>
+        <span className="text-sm text-gray-600">{t('common.areYouSure')}</span>
         <button
           onClick={() => {
             onConfirm();
@@ -181,13 +188,13 @@ function DeleteButton({ onConfirm, isPending }: DeleteButtonProps) {
           disabled={isPending}
           className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
         >
-          Yes
+          {t('common.yes')}
         </button>
         <button
           onClick={() => setIsConfirming(false)}
           className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
         >
-          No
+          {t('common.no')}
         </button>
       </div>
     );
@@ -199,7 +206,7 @@ function DeleteButton({ onConfirm, isPending }: DeleteButtonProps) {
       className="flex items-center gap-1.5 rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
     >
       <Trash2 className="h-4 w-4" />
-      Delete
+      {t('common.delete')}
     </button>
   );
 }

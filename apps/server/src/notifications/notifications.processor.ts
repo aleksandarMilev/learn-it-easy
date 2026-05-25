@@ -38,6 +38,7 @@ export class NotificationsProcessor extends WorkerHost {
         body: data.body,
       },
     });
+
     this.logger.log(`In-app notification created for user ${data.userId}`);
   }
 

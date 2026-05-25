@@ -3,21 +3,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { GraduationCap, CheckCircle2 } from 'lucide-react';
 import { authApi } from '@/api/auth.api';
 import { usersApi } from '@/api/users.api';
 import { useAuthStore } from '@/store/auth.store';
 import { useToast } from '@/store/toast.store';
 
-const schema = z.object({
-  email: z.email('Invalid email'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  role: z.enum(['STUDENT', 'TUTOR']),
-});
-
-type FormData = z.infer<typeof schema>;
+type FormData = {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  role: 'STUDENT' | 'TUTOR';
+};
 
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20';
@@ -33,6 +32,15 @@ export function RegisterPage() {
   const navigate = useNavigate();
   const { setTokens, setUser } = useAuthStore();
   const toast = useToast();
+  const { t } = useTranslation();
+
+  const schema = z.object({
+    email: z.email(t('auth.validation.emailRequired')),
+    password: z.string().min(8, t('auth.validation.passwordMinLength')),
+    firstName: z.string().min(1, t('auth.validation.firstNameRequired')),
+    lastName: z.string().min(1, t('auth.validation.lastNameRequired')),
+    role: z.enum(['STUDENT', 'TUTOR']),
+  });
 
   const {
     register,
@@ -49,10 +57,10 @@ export function RegisterPage() {
       setTokens(data.accessToken, data.refreshToken);
       const user = await usersApi.getMe();
       setUser({ id: user.id, email: user.email, role: user.role });
-      toast.success('Account created successfully!');
+      toast.success(t('toast.accountCreated'));
       navigate('/dashboard');
     },
-    onError: () => toast.error('Registration failed. Email may already be in use.'),
+    onError: () => toast.error(t('auth.registrationFailed')),
   });
 
   return (
@@ -71,10 +79,10 @@ export function RegisterPage() {
             </p>
           </div>
           <ul className="space-y-4">
-            {features.map((f) => (
-              <li key={f} className="flex items-center gap-3 text-indigo-100">
+            {features.map((feature) => (
+              <li key={feature} className="flex items-center gap-3 text-indigo-100">
                 <CheckCircle2 className="h-5 w-5 shrink-0 text-indigo-300" />
-                {f}
+                {feature}
               </li>
             ))}
           </ul>
@@ -92,7 +100,7 @@ export function RegisterPage() {
               <GraduationCap className="h-6 w-6 text-indigo-600" />
               <span className="text-lg font-bold text-indigo-600">LearnItEasy</span>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Create your account</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{t('auth.createAccount')}</h1>
             <p className="mt-2 text-gray-500">Get started in just a few seconds</p>
           </div>
 
@@ -101,7 +109,7 @@ export function RegisterPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                    First name
+                    {t('auth.firstName')}
                   </label>
                   <input {...register('firstName')} placeholder="Alex" className={inputClass} />
                   {errors.firstName && (
@@ -110,7 +118,7 @@ export function RegisterPage() {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Last name
+                    {t('auth.lastName')}
                   </label>
                   <input {...register('lastName')} placeholder="Smith" className={inputClass} />
                   {errors.lastName && (
@@ -121,7 +129,7 @@ export function RegisterPage() {
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Email address
+                  {t('auth.email')}
                 </label>
                 <input
                   {...register('email')}
@@ -136,7 +144,9 @@ export function RegisterPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  {t('auth.password')}
+                </label>
                 <input
                   {...register('password')}
                   type="password"
@@ -150,10 +160,12 @@ export function RegisterPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">I am a</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  {t('auth.iAm')}
+                </label>
                 <select {...register('role')} className={inputClass}>
-                  <option value="STUDENT">Student — I want to learn</option>
-                  <option value="TUTOR">Tutor — I want to teach</option>
+                  <option value="STUDENT">{t('common.role.student')} — I want to learn</option>
+                  <option value="TUTOR">{t('common.role.tutor')} — I want to teach</option>
                 </select>
               </div>
 
@@ -162,18 +174,18 @@ export function RegisterPage() {
                 disabled={mutation.isPending}
                 className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {mutation.isPending ? 'Creating account...' : 'Create account'}
+                {mutation.isPending ? t('auth.creatingAccount') : t('auth.createAccountButton')}
               </button>
             </form>
           </div>
 
           <p className="mt-6 text-center text-sm text-gray-500">
-            Already have an account?{' '}
+            {t('auth.alreadyHaveAccount')}{' '}
             <Link
               to="/login"
               className="font-semibold text-indigo-600 transition-colors hover:text-indigo-700"
             >
-              Sign in
+              {t('auth.signIn')}
             </Link>
           </p>
         </div>

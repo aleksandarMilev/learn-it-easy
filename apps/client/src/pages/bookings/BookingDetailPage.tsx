@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Calendar, Clock, FileText, CheckCircle2, XCircle, Star } from 'lucide-react';
 import { bookingsApi } from '@/api/bookings.api';
 import { reviewsApi } from '@/api/reviews.api';
@@ -12,25 +13,29 @@ import { StarRating } from '@/components/ui/StarRating';
 import type { BookingStatus } from '@/types';
 import { useToast } from '@/store/toast.store';
 
-const statusConfig: Record<BookingStatus, { label: string; classes: string }> = {
-  PENDING: { label: 'Pending', classes: 'bg-yellow-100 text-yellow-700' },
-  CONFIRMED: { label: 'Confirmed', classes: 'bg-green-100 text-green-700' },
-  CANCELLED: { label: 'Cancelled', classes: 'bg-red-100 text-red-700' },
-  COMPLETED: { label: 'Completed', classes: 'bg-gray-100 text-gray-600' },
+const statusClasses: Record<BookingStatus, string> = {
+  PENDING: 'bg-yellow-100 text-yellow-700',
+  CONFIRMED: 'bg-green-100 text-green-700',
+  CANCELLED: 'bg-red-100 text-red-700',
+  COMPLETED: 'bg-gray-100 text-gray-600',
 };
 
-const reviewSchema = z.object({
-  rating: z.number().min(1, 'Please select a rating').max(5),
-  comment: z.string().optional(),
-});
-
-type ReviewFormData = z.infer<typeof reviewSchema>;
+type ReviewFormData = {
+  rating: number;
+  comment?: string;
+};
 
 export function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const { isTutor, isAdmin, isStudent } = useAuth();
   const toast = useToast();
+  const { t } = useTranslation();
+
+  const reviewSchema = z.object({
+    rating: z.number().min(1, t('bookingDetail.selectRating')).max(5),
+    comment: z.string().optional(),
+  });
 
   const { data: booking, isLoading, isError } = useQuery({
     queryKey: ['bookings', id],
@@ -42,18 +47,20 @@ export function BookingDetailPage() {
     mutationFn: (status: BookingStatus) => bookingsApi.updateStatus(id!, status),
     onSuccess: (_, status) => {
       queryClient.invalidateQueries({ queryKey: ['bookings', id] });
-      toast.success(status === 'CONFIRMED' ? 'Booking confirmed!' : 'Booking cancelled.');
+      toast.success(
+        status === 'CONFIRMED' ? t('bookingDetail.confirmedToast') : t('bookingDetail.cancelledToast'),
+      );
     },
-    onError: () => toast.error('Failed to update booking. Please try again.'),
+    onError: () => toast.error(t('bookingDetail.statusFailed')),
   });
 
   const reviewMutation = useMutation({
     mutationFn: (data: ReviewFormData) => reviewsApi.create({ bookingId: id!, ...data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings', id] });
-      toast.success('Review submitted!');
+      toast.success(t('bookingDetail.reviewSubmitted'));
     },
-    onError: () => toast.error('Failed to submit review'),
+    onError: () => toast.error(t('bookingDetail.reviewFailed')),
   });
 
   const {
@@ -85,16 +92,15 @@ export function BookingDetailPage() {
   if (isError) {
     return (
       <div className="flex items-center justify-center py-24">
-        <p className="text-sm text-red-500">Something went wrong. Please try again.</p>
+        <p className="text-sm text-red-500">{t('errors.somethingWentWrong')}</p>
       </div>
     );
   }
 
   if (!booking) {
-    return <div className="py-24 text-center text-gray-500">Booking not found</div>;
+    return <div className="py-24 text-center text-gray-500">{t('bookingDetail.notFound')}</div>;
   }
 
-  const status = statusConfig[booking.status];
   const canLeaveReview =
     booking.status === 'COMPLETED' && isStudent && booking.review === null;
   const hasExistingReview = isStudent && booking.review !== null;
@@ -106,7 +112,7 @@ export function BookingDetailPage() {
         className="inline-flex items-center gap-1.5 text-sm text-indigo-600 transition-colors hover:text-indigo-700"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to bookings
+        {t('bookingDetail.backToBookings')}
       </Link>
 
       <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
@@ -114,11 +120,13 @@ export function BookingDetailPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{booking.subject}</h1>
             <p className="mt-1 text-sm text-gray-500">
-              with {getFullName(booking.student.profile)}
+              {t('bookingDetail.with')} {getFullName(booking.student.profile)}
             </p>
           </div>
-          <span className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${status.classes}`}>
-            {status.label}
+          <span
+            className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${statusClasses[booking.status]}`}
+          >
+            {t(`bookings.status.${booking.status.toLowerCase()}`)}
           </span>
         </div>
 
@@ -127,7 +135,7 @@ export function BookingDetailPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
               <Calendar className="h-4 w-4 text-gray-500" />
             </div>
-            <span className="w-16 shrink-0 text-gray-500">Start</span>
+            <span className="w-16 shrink-0 text-gray-500">{t('bookingDetail.start')}</span>
             <span className="font-medium text-gray-900">{formatDateTime(booking.startTime)}</span>
           </div>
 
@@ -135,7 +143,7 @@ export function BookingDetailPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
               <Clock className="h-4 w-4 text-gray-500" />
             </div>
-            <span className="w-16 shrink-0 text-gray-500">End</span>
+            <span className="w-16 shrink-0 text-gray-500">{t('bookingDetail.end')}</span>
             <span className="font-medium text-gray-900">{formatDateTime(booking.endTime)}</span>
           </div>
 
@@ -144,7 +152,7 @@ export function BookingDetailPage() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
                 <FileText className="h-4 w-4 text-gray-500" />
               </div>
-              <span className="w-16 shrink-0 pt-0.5 text-gray-500">Notes</span>
+              <span className="w-16 shrink-0 pt-0.5 text-gray-500">{t('bookingDetail.notes')}</span>
               <span className="font-medium text-gray-900">{booking.notes}</span>
             </div>
           )}
@@ -152,7 +160,7 @@ export function BookingDetailPage() {
 
         {(isTutor || isAdmin) && booking.status === 'PENDING' && (
           <div className="mt-6 border-t border-gray-100 pt-6">
-            <p className="mb-3 text-sm font-medium text-gray-700">Actions</p>
+            <p className="mb-3 text-sm font-medium text-gray-700">{t('bookingDetail.actions')}</p>
             <div className="flex gap-3">
               <button
                 onClick={() => statusMutation.mutate('CONFIRMED')}
@@ -160,7 +168,7 @@ export function BookingDetailPage() {
                 className="flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
               >
                 <CheckCircle2 className="h-4 w-4" />
-                Confirm
+                {t('bookingDetail.confirmButton')}
               </button>
               <button
                 onClick={() => statusMutation.mutate('CANCELLED')}
@@ -168,7 +176,7 @@ export function BookingDetailPage() {
                 className="flex items-center gap-1.5 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
               >
                 <XCircle className="h-4 w-4" />
-                Cancel
+                {t('bookingDetail.cancelButton')}
               </button>
             </div>
           </div>
@@ -179,7 +187,7 @@ export function BookingDetailPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <Star className="h-4 w-4 text-amber-400" />
-            <h2 className="font-semibold text-gray-900">Your review</h2>
+            <h2 className="font-semibold text-gray-900">{t('bookingDetail.yourReview')}</h2>
           </div>
           <StarRating value={booking.review.rating} size="md" />
           {booking.review.comment && (
@@ -193,7 +201,7 @@ export function BookingDetailPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <Star className="h-4 w-4 text-amber-400" />
-            <h2 className="font-semibold text-gray-900">Leave a review</h2>
+            <h2 className="font-semibold text-gray-900">{t('bookingDetail.leaveReview')}</h2>
           </div>
           <form
             onSubmit={handleSubmit((data) => reviewMutation.mutate(data))}
@@ -215,7 +223,7 @@ export function BookingDetailPage() {
               <textarea
                 {...register('comment')}
                 rows={3}
-                placeholder="Share your experience..."
+                placeholder={t('bookingDetail.reviewPlaceholder')}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
               />
             </div>
@@ -224,7 +232,9 @@ export function BookingDetailPage() {
               disabled={reviewMutation.isPending}
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
             >
-              {reviewMutation.isPending ? 'Submitting...' : 'Submit review'}
+              {reviewMutation.isPending
+                ? t('bookingDetail.submittingReview')
+                : t('bookingDetail.submitReview')}
             </button>
           </form>
         </div>

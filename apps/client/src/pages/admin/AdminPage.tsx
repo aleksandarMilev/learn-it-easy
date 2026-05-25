@@ -1,10 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Shield, Users, CalendarDays, GraduationCap, ArrowRight } from 'lucide-react';
 import { adminApi } from '@/api/admin.api';
 import { tutorsApi } from '@/api/tutors.api';
 
 export function AdminPage() {
+  const { t } = useTranslation();
+
   const { data: users } = useQuery({
     queryKey: ['admin', 'users'],
     queryFn: adminApi.getUsers,
@@ -29,29 +32,29 @@ export function AdminPage() {
           <Shield className="h-5 w-5 text-amber-600" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
-          <p className="text-sm text-amber-600 font-medium">Elevated permissions</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('admin.title')}</h1>
+          <p className="text-sm text-amber-600 font-medium">{t('admin.elevatedPermissions')}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
           icon={<Users className="h-6 w-6 text-indigo-600" />}
-          label="Total Users"
+          label={t('admin.totalUsers')}
           value={users?.length ?? '—'}
           href="/admin/users"
           bgClass="bg-indigo-50"
         />
         <StatCard
           icon={<CalendarDays className="h-6 w-6 text-indigo-600" />}
-          label="Total Bookings"
+          label={t('admin.totalBookings')}
           value={bookings?.length ?? '—'}
           href="/admin/bookings"
           bgClass="bg-indigo-50"
         />
         <StatCard
           icon={<GraduationCap className="h-6 w-6 text-amber-600" />}
-          label="Pending Approvals"
+          label={t('admin.pendingApprovals')}
           value={pendingApprovalCount}
           href="/admin/tutors"
           bgClass="bg-amber-50"
@@ -60,11 +63,11 @@ export function AdminPage() {
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="font-semibold text-gray-900">Quick access</h2>
+        <h2 className="font-semibold text-gray-900">{t('admin.quickAccess')}</h2>
         <div className="mt-4 space-y-2">
-          <AdminLink to="/admin/users" label="Manage Users" />
-          <AdminLink to="/admin/tutors" label="Manage Tutors" />
-          <AdminLink to="/admin/bookings" label="View All Bookings" />
+          <AdminLink to="/admin/users" label={t('admin.manageUsers')} />
+          <AdminLink to="/admin/tutors" label={t('admin.manageTutors')} />
+          <AdminLink to="/admin/bookings" label={t('admin.viewAllBookings')} />
         </div>
       </div>
     </div>
@@ -81,6 +84,8 @@ interface StatCardProps {
 }
 
 function StatCard({ icon, label, value, href, bgClass, highlight }: StatCardProps) {
+  const { t } = useTranslation();
+
   return (
     <Link
       to={href}
@@ -94,7 +99,7 @@ function StatCard({ icon, label, value, href, bgClass, highlight }: StatCardProp
       <p className="text-sm text-gray-500">{label}</p>
       <p className="mt-1 text-3xl font-bold text-gray-900">{value}</p>
       <div className="mt-3 flex items-center gap-1 text-xs font-medium text-indigo-600 opacity-0 transition-opacity group-hover:opacity-100">
-        View <ArrowRight className="h-3 w-3" />
+        {t('common.viewAll')} <ArrowRight className="h-3 w-3" />
       </div>
     </Link>
   );

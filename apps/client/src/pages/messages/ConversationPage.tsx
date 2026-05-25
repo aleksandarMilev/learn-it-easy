@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useRef, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, SendHorizonal } from 'lucide-react';
 import { messagingApi } from '@/api/messaging.api';
 import { useSocket } from '@/hooks/useSocket';
 import { useAuthStore } from '@/store/auth.store';
-import { useToastStore } from '@/store/toast.store';
+import { useToast } from '@/store/toast.store';
 import { getFullName, formatTime } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
 import type { Message } from '@/types';
@@ -13,8 +14,9 @@ import type { Message } from '@/types';
 export function ConversationPage() {
   const { id } = useParams<{ id: string }>();
   const user = useAuthStore((s) => s.user);
-  const addToast = useToastStore((s) => s.addToast);
+  const toast = useToast();
   const socket = useSocket();
+  const { t } = useTranslation();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [content, setContent] = useState('');
   const [extraMessages, setExtraMessages] = useState<Message[]>([]);
@@ -46,14 +48,14 @@ export function ConversationPage() {
     });
 
     socket.on('connect_error', () => {
-      addToast('Connection lost. Trying to reconnect...', 'error');
+      toast.error(t('messages.connectionError'));
     });
 
     return () => {
       socket.off('receiveMessage');
       socket.off('connect_error');
     };
-  }, [socket, id, addToast]);
+  }, [socket, id, toast, t]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -87,7 +89,7 @@ export function ConversationPage() {
   if (isError) {
     return (
       <div className="flex items-center justify-center py-24">
-        <p className="text-sm text-red-500">Something went wrong. Please try again.</p>
+        <p className="text-sm text-red-500">{t('errors.somethingWentWrong')}</p>
       </div>
     );
   }
@@ -99,7 +101,7 @@ export function ConversationPage() {
         className="mb-3 inline-flex items-center gap-1.5 text-sm text-indigo-600 transition-colors hover:text-indigo-700"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to messages
+        {t('messages.backToMessages')}
       </Link>
 
       <div className="flex h-[calc(100vh-11rem)] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -141,10 +143,10 @@ export function ConversationPage() {
           <div className="flex items-end gap-3">
             <textarea
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(event) => setContent(event.target.value)}
               onKeyDown={handleKeyDown}
               rows={1}
-              placeholder="Type a message… (Enter to send)"
+              placeholder={t('messages.typeMessage')}
               className="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm transition-colors focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none"
             />
             <button
