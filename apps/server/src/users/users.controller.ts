@@ -34,13 +34,13 @@ const DEFAULT_AVATAR_FILENAME = 'default-avatar.svg';
 @UseGuards(JwtGuard)
 export class UsersController {
   constructor(
-    private readonly usersService: UsersService,
+    private readonly service: UsersService,
     private readonly imageValidator: ImageValidatorService,
   ) {}
 
   @Get('me')
   getMe(@CurrentUser() user: JwtPayload) {
-    return this.usersService.findMe(user.sub);
+    return this.service.findMe(user.sub);
   }
 
   @Patch('me')
@@ -48,7 +48,7 @@ export class UsersController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: UpdateProfileDtoClass,
   ) {
-    return this.usersService.updateMe(user.sub, dto);
+    return this.service.updateMe(user.sub, dto);
   }
 
   @Post('me/avatar')
@@ -72,7 +72,7 @@ export class UsersController {
 
     await fs.mkdir(AVATARS_DIR, { recursive: true });
 
-    const existingUser = await this.usersService.findMe(user.sub);
+    const existingUser = await this.service.findMe(user.sub);
     const currentAvatarUrl = existingUser.profile?.avatarUrl;
     if (
       currentAvatarUrl &&
@@ -89,12 +89,12 @@ export class UsersController {
     await fs.writeFile(filePath, file.buffer);
 
     const avatarUrl = `/uploads/avatars/${filename}`;
-    return this.usersService.updateAvatar(user.sub, avatarUrl);
+    return this.service.updateAvatar(user.sub, avatarUrl);
   }
 
   @Delete('me/avatar')
   async removeAvatar(@CurrentUser() user: JwtPayload) {
-    const existingUser = await this.usersService.findMe(user.sub);
+    const existingUser = await this.service.findMe(user.sub);
     const currentAvatarUrl = existingUser.profile?.avatarUrl;
 
     if (
@@ -109,18 +109,18 @@ export class UsersController {
       }
     }
 
-    return this.usersService.removeAvatar(user.sub);
+    return this.service.removeAvatar(user.sub);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.usersService.findById(id);
+    return this.service.findById(id);
   }
 
   @Get()
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
   findAll() {
-    return this.usersService.findAll();
+    return this.service.findAll();
   }
 }

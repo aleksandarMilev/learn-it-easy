@@ -24,7 +24,7 @@ import { TutorWithUser } from './types/tutor-with-user.type';
 @ApiTags('tutors')
 @Controller('tutors')
 export class TutorsController {
-  constructor(private readonly tutorsService: TutorsService) {}
+  constructor(private readonly service: TutorsService) {}
 
   @Post('profile')
   @ApiBearerAuth()
@@ -34,7 +34,7 @@ export class TutorsController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: CreateTutorProfileDto,
   ): Promise<TutorProfile> {
-    return this.tutorsService.createProfile(user.sub, dto);
+    return this.service.createProfile(user.sub, dto);
   }
 
   @Patch('profile')
@@ -45,19 +45,19 @@ export class TutorsController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: UpdateTutorProfileDto,
   ): Promise<TutorProfile> {
-    return this.tutorsService.updateProfile(user.sub, dto);
+    return this.service.updateProfile(user.sub, dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'List all approved tutors' })
   findAll(): Promise<TutorProfile[]> {
-    return this.tutorsService.findAll();
+    return this.service.findAll();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get tutor by id' })
   findOne(@Param('id') id: string): Promise<TutorWithUser> {
-    return this.tutorsService.findOne(id);
+    return this.service.findOne(id);
   }
 
   @Post(':id/approve')
@@ -66,7 +66,7 @@ export class TutorsController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Approve a tutor (admin only)' })
   approve(@Param('id') id: string): Promise<TutorProfile> {
-    return this.tutorsService.approve(id);
+    return this.service.approve(id);
   }
 
   @Post('availability')
@@ -77,13 +77,13 @@ export class TutorsController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: CreateAvailabilityDto,
   ): Promise<Availability> {
-    return this.tutorsService.createAvailability(user.sub, dto);
+    return this.service.createAvailability(user.sub, dto);
   }
 
   @Get(':id/availability')
   @ApiOperation({ summary: 'Get tutor availability' })
   getAvailability(@Param('id') id: string): Promise<Availability[]> {
-    return this.tutorsService.getAvailability(id);
+    return this.service.getAvailability(id);
   }
 
   @Delete(':id')
@@ -94,10 +94,6 @@ export class TutorsController {
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
   ): Promise<TutorProfile> {
-    return this.tutorsService.softDelete(
-      user.sub,
-      id,
-      user.role === Role.ADMIN,
-    );
+    return this.service.softDelete(user.sub, id, user.role === Role.ADMIN);
   }
 }

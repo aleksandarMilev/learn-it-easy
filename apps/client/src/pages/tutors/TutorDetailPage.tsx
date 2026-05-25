@@ -3,14 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Clock, MessageSquare, CalendarDays } from 'lucide-react';
+import { Clock, MessageSquare, CalendarDays, Star } from 'lucide-react';
 import { tutorsApi } from '@/api/tutors.api';
 import { bookingsApi } from '@/api/bookings.api';
 import { messagingApi } from '@/api/messaging.api';
-import { getFullName, getDayName } from '@/lib/utils';
+import { reviewsApi } from '@/api/reviews.api';
+import { formatDate, getFullName, getDayName } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
 import { useToast } from '@/store/toast.store';
 import { Avatar } from '@/components/ui/Avatar';
+import { StarRating } from '@/components/ui/StarRating';
 
 const schema = z.object({
   startTime: z.string().min(1, 'Required'),
@@ -38,6 +40,12 @@ export function TutorDetailPage() {
   } = useQuery({
     queryKey: ['tutors', id],
     queryFn: () => tutorsApi.getById(id!),
+    enabled: !!id,
+  });
+
+  const { data: reviews } = useQuery({
+    queryKey: ['reviews', id],
+    queryFn: () => reviewsApi.getByTutor(id!),
     enabled: !!id,
   });
 
@@ -99,8 +107,14 @@ export function TutorDetailPage() {
     return <div className="py-24 text-center text-gray-500">Tutor not found</div>;
   }
 
+  const reviewCount = reviews?.length ?? 0;
+  const averageRating =
+    reviewCount > 0
+      ? reviews!.reduce((sum, review) => sum + review.rating, 0) / reviewCount
+      : 0;
+
   return (
-    <div className="animate-fade-in-up mx-auto max-w-5xl">
+    <div className="animate-fade-in-up mx-auto max-w-5xl space-y-8">
       <div className="lg:flex lg:items-start lg:gap-8">
         {/* Left: Tutor info */}
         <div className="flex-1 space-y-6">
@@ -137,13 +151,13 @@ export function TutorDetailPage() {
                 <h2 className="font-semibold text-gray-900">Availability</h2>
               </div>
               <div className="mt-4 space-y-2">
-                {tutor.availability.map((a) => (
-                  <div key={a.id} className="flex items-center justify-between">
+                {tutor.availability.map((availabilitySlot) => (
+                  <div key={availabilitySlot.id} className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">
-                      {getDayName(a.dayOfWeek)}
+                      {getDayName(availabilitySlot.dayOfWeek)}
                     </span>
                     <span className="rounded-lg bg-indigo-50 px-3 py-1 text-sm text-indigo-700">
-                      {a.startTime} – {a.endTime}
+                      {availabilitySlot.startTime} – {availabilitySlot.endTime}
                     </span>
                   </div>
                 ))}
@@ -213,9 +227,9 @@ export function TutorDetailPage() {
                       </label>
                       <select {...register('subject')} className={inputClass}>
                         <option value="">Select a subject</option>
-                        {tutor.subjects.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
+                        {tutor.subjects.map((subject) => (
+                          <option key={subject} value={subject}>
+                            {subject}
                           </option>
                         ))}
                       </select>
@@ -246,6 +260,43 @@ export function TutorDetailPage() {
               )}
             </div>
           </div>
+        )}
+      </div>
+
+      {/* Reviews section */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold text-gray-900">Reviews</h2>
+          <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
+            {reviewCount}
+          </span>
+        </div>
+
+        {reviewCount === 0 ? (
+          <div className="mt-6 flex flex-col items-center py-8 text-center">
+            <Star className="mb-2 h-8 w-8 text-gray-200" />
+            <p className="text-sm text-gray-500">No reviews yet</p>
+          </div>
+        ) : (
+          <>
+            <div className="mt-4 flex items-center gap-3">
+              <StarRating value={Math.round(averageRating)} size="lg" />
+              <span className="text-2xl font-bold text-gray-900">{averageRating.toFixed(1)}</span>
+              <span className="text-sm text-gray-500">({reviewCount} reviews)</span>
+            </div>
+
+            <div className="mt-6 space-y-4 divide-y divide-gray-100">
+              {reviews!.map((review) => (
+                <div key={review.id} className="pt-4 first:pt-0">
+                  <StarRating value={review.rating} size="sm" />
+                  {review.comment && (
+                    <p className="mt-2 text-sm text-gray-600">{review.comment}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-400">{formatDate(review.createdAt)}</p>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>

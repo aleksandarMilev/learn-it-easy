@@ -18,12 +18,12 @@ import type { Notification } from '@prisma/client';
 @UseGuards(JwtGuard)
 @Controller('notifications')
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(private readonly service: NotificationsService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all notifications for current user' })
   findAll(@CurrentUser() user: JwtPayload): Promise<Notification[]> {
-    return this.notificationsService.findAll(user.sub);
+    return this.service.findAll(user.sub);
   }
 
   @Get('unread-count')
@@ -31,7 +31,7 @@ export class NotificationsController {
   async getUnreadCount(
     @CurrentUser() user: JwtPayload,
   ): Promise<{ count: number }> {
-    const count = await this.notificationsService.getUnreadCount(user.sub);
+    const count = await this.service.getUnreadCount(user.sub);
     return { count };
   }
 
@@ -41,7 +41,7 @@ export class NotificationsController {
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
   ): Promise<Notification> {
-    return this.notificationsService.markAsRead(id, user.sub);
+    return this.service.markAsRead(id, user.sub);
   }
 
   @Delete(':id')
@@ -50,6 +50,6 @@ export class NotificationsController {
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
   ): Promise<Notification> {
-    return this.notificationsService.softDelete(id, user.sub);
+    return this.service.softDelete(id, user.sub);
   }
 }

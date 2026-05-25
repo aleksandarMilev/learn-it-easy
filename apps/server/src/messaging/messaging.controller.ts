@@ -22,7 +22,7 @@ import { MessageWithSender } from './types/message-with-sender.type';
 @UseGuards(JwtGuard)
 @Controller('messages')
 export class MessagingController {
-  constructor(private readonly messagingService: MessagingService) {}
+  constructor(private readonly service: MessagingService) {}
 
   @Post('conversation')
   @ApiOperation({ summary: 'Start a conversation with a tutor' })
@@ -30,7 +30,7 @@ export class MessagingController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: CreateConversationDto,
   ): Promise<Conversation> {
-    return this.messagingService.createConversation(user.sub, dto);
+    return this.service.createConversation(user.sub, dto);
   }
 
   @Get('conversations')
@@ -38,7 +38,7 @@ export class MessagingController {
   findConversations(
     @CurrentUser() user: JwtPayload,
   ): Promise<ConversationWithDetails[]> {
-    return this.messagingService.findConversations(user.sub);
+    return this.service.findConversations(user.sub);
   }
 
   @Get('conversations/:id')
@@ -47,7 +47,7 @@ export class MessagingController {
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
   ): Promise<MessageWithSender[]> {
-    return this.messagingService.findMessages(id, user.sub);
+    return this.service.findMessages(id, user.sub);
   }
 
   @Delete('messages/:id')
@@ -56,6 +56,6 @@ export class MessagingController {
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
   ): Promise<Message> {
-    return this.messagingService.softDeleteMessage(id, user.sub);
+    return this.service.softDeleteMessage(id, user.sub);
   }
 }

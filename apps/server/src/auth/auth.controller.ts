@@ -7,7 +7,7 @@ import { LoginDto } from './dto/login.dto';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly service: AuthService) {}
 
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
@@ -16,7 +16,7 @@ export class AuthController {
   register(
     @Body() dto: RegisterDto,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    return this.authService.register(dto);
+    return this.service.register(dto);
   }
 
   @Post('login')
@@ -29,7 +29,7 @@ export class AuthController {
   login(
     @Body() dto: LoginDto,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    return this.authService.login(dto);
+    return this.service.login(dto);
   }
 
   @Post('refresh')
@@ -38,13 +38,13 @@ export class AuthController {
   refresh(
     @Body('refreshToken') token: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    return this.authService.refresh(token);
+    return this.service.refresh(token);
   }
 
   @Post('logout')
   @ApiOperation({ summary: 'Logout and invalidate refresh token' })
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
   logout(@Body('refreshToken') token: string): Promise<void> {
-    return this.authService.logout(token);
+    return this.service.logout(token);
   }
 }

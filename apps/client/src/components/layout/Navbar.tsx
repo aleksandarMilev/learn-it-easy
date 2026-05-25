@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Bell,
   LogOut,
+  Shield,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { authApi } from '@/api/auth.api';
@@ -99,6 +100,20 @@ export function Navbar() {
                     </span>
                   )}
                 </Link>
+
+                {user?.role === 'ADMIN' && (
+                  <Link
+                    to="/admin"
+                    className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+                      location.pathname.startsWith('/admin')
+                        ? 'bg-amber-50 text-amber-600'
+                        : 'text-amber-600 hover:bg-amber-50'
+                    }`}
+                  >
+                    <Shield className="h-4 w-4" />
+                    Admin
+                  </Link>
+                )}
               </div>
             )}
           </div>

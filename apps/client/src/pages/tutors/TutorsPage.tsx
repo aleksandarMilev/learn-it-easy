@@ -2,8 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { GraduationCap, Clock, ArrowRight } from 'lucide-react';
 import { tutorsApi } from '@/api/tutors.api';
+import { reviewsApi } from '@/api/reviews.api';
 import { getFullName, getDayName } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
+import { StarRating } from '@/components/ui/StarRating';
+import type { Review } from '@/types';
 
 function TutorCardSkeleton() {
   return (
@@ -28,6 +31,33 @@ function TutorCardSkeleton() {
   );
 }
 
+function computeAverageRating(reviews: Review[]): number {
+  if (reviews.length === 0) {
+    return 0;
+  }
+  return reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
+}
+
+function TutorRatingDisplay({ tutorId }: { tutorId: string }) {
+  const { data: reviews } = useQuery({
+    queryKey: ['reviews', tutorId],
+    queryFn: () => reviewsApi.getByTutor(tutorId),
+  });
+
+  if (!reviews || reviews.length === 0) {
+    return <span className="text-xs text-gray-400">No reviews yet</span>;
+  }
+
+  const averageRating = computeAverageRating(reviews);
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <StarRating value={Math.round(averageRating)} size="sm" />
+      <span className="text-xs font-medium text-gray-600">{averageRating.toFixed(1)}</span>
+    </div>
+  );
+}
+
 export function TutorsPage() {
   const { data: tutors, isLoading, isError } = useQuery({
     queryKey: ['tutors'],
@@ -44,8 +74,8 @@ export function TutorsPage() {
           </p>
         </div>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <TutorCardSkeleton key={i} />
+          {Array.from({ length: 6 }).map((_, index) => (
+            <TutorCardSkeleton key={index} />
           ))}
         </div>
       </div>
@@ -113,6 +143,10 @@ export function TutorsPage() {
                 ))}
               </div>
 
+              <div className="mt-3">
+                <TutorRatingDisplay tutorId={tutor.id} />
+              </div>
+
               {tutor.availability.length > 0 && (
                 <div className="mt-4 border-t border-gray-100 pt-4">
                   <div className="flex items-center gap-1.5 text-xs text-gray-400">
@@ -120,9 +154,10 @@ export function TutorsPage() {
                     Available:
                   </div>
                   <div className="mt-1.5 flex flex-wrap gap-1">
-                    {tutor.availability.map((a) => (
-                      <span key={a.id} className="text-xs text-gray-500">
-                        {getDayName(a.dayOfWeek)} {a.startTime}–{a.endTime}
+                    {tutor.availability.map((availabilitySlot) => (
+                      <span key={availabilitySlot.id} className="text-xs text-gray-500">
+                        {getDayName(availabilitySlot.dayOfWeek)} {availabilitySlot.startTime}–
+                        {availabilitySlot.endTime}
                       </span>
                     ))}
                   </div>

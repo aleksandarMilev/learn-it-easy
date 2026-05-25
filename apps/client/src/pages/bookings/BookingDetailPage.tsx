@@ -1,9 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, FileText, CheckCircle2, XCircle } from 'lucide-react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { ArrowLeft, Calendar, Clock, FileText, CheckCircle2, XCircle, Star } from 'lucide-react';
 import { bookingsApi } from '@/api/bookings.api';
-import { formatDateTime, getFullName } from '@/lib/utils';
+import { reviewsApi } from '@/api/reviews.api';
+import { formatDate, formatDateTime, getFullName } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { StarRating } from '@/components/ui/StarRating';
 import type { BookingStatus } from '@/types';
 import { useToast } from '@/store/toast.store';
 
@@ -14,10 +19,17 @@ const statusConfig: Record<BookingStatus, { label: string; classes: string }> = 
   COMPLETED: { label: 'Completed', classes: 'bg-gray-100 text-gray-600' },
 };
 
+const reviewSchema = z.object({
+  rating: z.number().min(1, 'Please select a rating').max(5),
+  comment: z.string().optional(),
+});
+
+type ReviewFormData = z.infer<typeof reviewSchema>;
+
 export function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
-  const { isTutor, isAdmin } = useAuth();
+  const { isTutor, isAdmin, isStudent } = useAuth();
   const toast = useToast();
 
   const { data: booking, isLoading, isError } = useQuery({
@@ -33,6 +45,25 @@ export function BookingDetailPage() {
       toast.success(status === 'CONFIRMED' ? 'Booking confirmed!' : 'Booking cancelled.');
     },
     onError: () => toast.error('Failed to update booking. Please try again.'),
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: (data: ReviewFormData) => reviewsApi.create({ bookingId: id!, ...data }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', id] });
+      toast.success('Review submitted!');
+    },
+    onError: () => toast.error('Failed to submit review'),
+  });
+
+  const {
+    control,
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ReviewFormData>({
+    resolver: zodResolver(reviewSchema),
+    defaultValues: { rating: 0 },
   });
 
   if (isLoading) {
@@ -64,6 +95,9 @@ export function BookingDetailPage() {
   }
 
   const status = statusConfig[booking.status];
+  const canLeaveReview =
+    booking.status === 'COMPLETED' && isStudent && booking.review === null;
+  const hasExistingReview = isStudent && booking.review !== null;
 
   return (
     <div className="mx-auto max-w-2xl animate-fade-in-up space-y-6">
@@ -140,6 +174,61 @@ export function BookingDetailPage() {
           </div>
         )}
       </div>
+
+      {hasExistingReview && booking.review && (
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Star className="h-4 w-4 text-amber-400" />
+            <h2 className="font-semibold text-gray-900">Your review</h2>
+          </div>
+          <StarRating value={booking.review.rating} size="md" />
+          {booking.review.comment && (
+            <p className="mt-3 text-sm text-gray-600">{booking.review.comment}</p>
+          )}
+          <p className="mt-2 text-xs text-gray-400">{formatDate(booking.review.createdAt)}</p>
+        </div>
+      )}
+
+      {canLeaveReview && (
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Star className="h-4 w-4 text-amber-400" />
+            <h2 className="font-semibold text-gray-900">Leave a review</h2>
+          </div>
+          <form
+            onSubmit={handleSubmit((data) => reviewMutation.mutate(data))}
+            className="space-y-4"
+          >
+            <div>
+              <Controller
+                name="rating"
+                control={control}
+                render={({ field }) => (
+                  <StarRating value={field.value} onChange={field.onChange} size="lg" />
+                )}
+              />
+              {errors.rating && (
+                <p className="mt-1 text-xs text-red-500">{errors.rating.message}</p>
+              )}
+            </div>
+            <div>
+              <textarea
+                {...register('comment')}
+                rows={3}
+                placeholder="Share your experience..."
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={reviewMutation.isPending}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+            >
+              {reviewMutation.isPending ? 'Submitting...' : 'Submit review'}
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

@@ -24,7 +24,7 @@ import { BookingWithFullRelations } from './types/booking-with-full-relations.ty
 @UseGuards(JwtGuard)
 @Controller('bookings')
 export class BookingsController {
-  constructor(private readonly bookingsService: BookingsService) {}
+  constructor(private readonly service: BookingsService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a booking' })
@@ -32,13 +32,13 @@ export class BookingsController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: CreateBookingDto,
   ): Promise<BookingWithRelations> {
-    return this.bookingsService.create(user.sub, dto);
+    return this.service.create(user.sub, dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all bookings for current user' })
   findAll(@CurrentUser() user: JwtPayload): Promise<BookingWithRelations[]> {
-    return this.bookingsService.findAll(user.sub, user.role as Role);
+    return this.service.findAll(user.sub, user.role as Role);
   }
 
   @Get(':id')
@@ -47,7 +47,7 @@ export class BookingsController {
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
   ): Promise<BookingWithFullRelations> {
-    return this.bookingsService.findOne(id, user.sub, user.role as Role);
+    return this.service.findOne(id, user.sub, user.role as Role);
   }
 
   @Patch(':id/status')
@@ -57,12 +57,7 @@ export class BookingsController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: UpdateBookingDto,
   ): Promise<Booking> {
-    return this.bookingsService.updateStatus(
-      id,
-      user.sub,
-      user.role as Role,
-      dto,
-    );
+    return this.service.updateStatus(id, user.sub, user.role as Role, dto);
   }
 
   @Delete(':id')
@@ -71,6 +66,6 @@ export class BookingsController {
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
   ): Promise<Booking> {
-    return this.bookingsService.softDelete(id, user.sub, user.role as Role);
+    return this.service.softDelete(id, user.sub, user.role as Role);
   }
 }

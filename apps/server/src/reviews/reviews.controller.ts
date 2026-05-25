@@ -21,7 +21,7 @@ import { ReviewWithBooking } from './types/review-with-booking.type';
 @ApiTags('reviews')
 @Controller('reviews')
 export class ReviewsController {
-  constructor(private readonly reviewsService: ReviewsService) {}
+  constructor(private readonly service: ReviewsService) {}
 
   @Post()
   @ApiBearerAuth()
@@ -31,13 +31,13 @@ export class ReviewsController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: CreateReviewDto,
   ): Promise<Review> {
-    return this.reviewsService.create(user.sub, dto);
+    return this.service.create(user.sub, dto);
   }
 
   @Get('tutor/:tutorId')
   @ApiOperation({ summary: 'Get all reviews for a tutor' })
   findByTutor(@Param('tutorId') tutorId: string): Promise<ReviewWithBooking[]> {
-    return this.reviewsService.findByTutor(tutorId);
+    return this.service.findByTutor(tutorId);
   }
 
   @Patch(':id')
@@ -49,7 +49,7 @@ export class ReviewsController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: UpdateReviewDto,
   ): Promise<Review> {
-    return this.reviewsService.update(id, user.sub, dto);
+    return this.service.update(id, user.sub, dto);
   }
 
   @Delete(':id')
@@ -60,10 +60,6 @@ export class ReviewsController {
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
   ): Promise<Review> {
-    return this.reviewsService.softDelete(
-      id,
-      user.sub,
-      user.role === Role.ADMIN,
-    );
+    return this.service.softDelete(id, user.sub, user.role === Role.ADMIN);
   }
 }

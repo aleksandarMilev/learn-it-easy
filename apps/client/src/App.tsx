@@ -12,6 +12,10 @@ import { MessagesPage } from '@/pages/messages/MessagesPage';
 import { ConversationPage } from '@/pages/messages/ConversationPage';
 import { NotificationsPage } from '@/pages/notifications/NotificationsPage';
 import { ProfilePage } from '@/pages/profile/ProfilePage';
+import { AdminPage } from '@/pages/admin/AdminPage';
+import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
+import { AdminTutorsPage } from '@/pages/admin/AdminTutorsPage';
+import { AdminBookingsPage } from '@/pages/admin/AdminBookingsPage';
 import { Layout } from '@/components/layout/Layout';
 
 const queryClient = new QueryClient({
@@ -31,6 +35,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function GuestRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((s) => s.user);
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  if (user.role !== 'ADMIN') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
 }
 
 export function App() {
@@ -71,6 +86,38 @@ export function App() {
             <Route path="/messages/:id" element={<ConversationPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminRoute>
+                  <AdminUsersPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/tutors"
+              element={
+                <AdminRoute>
+                  <AdminTutorsPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/bookings"
+              element={
+                <AdminRoute>
+                  <AdminBookingsPage />
+                </AdminRoute>
+              }
+            />
           </Route>
         </Routes>
       </BrowserRouter>

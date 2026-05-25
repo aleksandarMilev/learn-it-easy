@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as path from 'path';
 
-const MAX_SIZE = 2 * 1024 * 1024;
+const MAX_SIZE = 2 * 1_024 * 1_024;
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.avif'];
 const ALLOWED_MIME_TYPES = [
   'image/jpeg',
@@ -25,8 +25,8 @@ export class ImageValidatorService {
       return { valid: false, error: 'Invalid file type' };
     }
 
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+    const extension = path.extname(file.originalname).toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(extension)) {
       return { valid: false, error: 'Invalid file extension' };
     }
 
@@ -68,6 +68,7 @@ export class ImageValidatorService {
       bytes.subarray(8, 12).toString('ascii') === 'WEBP';
 
     const avifBrand = bytes.subarray(8, 12).toString('ascii');
+
     const isAvif =
       bytes.subarray(4, 8).toString('ascii') === 'ftyp' &&
       (avifBrand === 'avif' || avifBrand === 'avis');
