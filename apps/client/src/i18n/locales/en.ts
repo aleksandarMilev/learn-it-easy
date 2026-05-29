@@ -14,6 +14,8 @@ export const en = {
     no: 'No',
     perHour: '/hr',
     required: 'Required',
+    loadMore: 'Load more',
+    noMoreItems: 'No more items to load',
     role: {
       student: 'Student',
       tutor: 'Tutor',

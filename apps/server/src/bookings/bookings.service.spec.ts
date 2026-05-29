@@ -206,13 +206,14 @@ describe('BookingsService', () => {
   });
 
   describe('findAll', () => {
-    it('should return bookings for a student', async () => {
+    it('should return paginated bookings for a student', async () => {
       const bookings = [mockBooking(), mockBooking()];
       mockPrismaService.booking.findMany.mockResolvedValue(bookings);
 
-      const result = await service.findAll(faker.string.uuid(), Role.STUDENT);
+      const result = await service.findAll(faker.string.uuid(), Role.STUDENT, {});
 
-      expect(result).toEqual(bookings);
+      expect(result.data).toEqual(bookings);
+      expect(result.nextCursor).toBeNull();
       expect(mockPrismaService.booking.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ studentId: expect.any(String) }),
@@ -220,16 +221,55 @@ describe('BookingsService', () => {
       );
     });
 
-    it('should return all bookings for admin', async () => {
+    it('should return paginated bookings for admin with no cursor', async () => {
       const bookings = [mockBooking(), mockBooking(), mockBooking()];
       mockPrismaService.booking.findMany.mockResolvedValue(bookings);
 
-      const result = await service.findAll(faker.string.uuid(), Role.ADMIN);
+      const result = await service.findAll(faker.string.uuid(), Role.ADMIN, {});
 
-      expect(result).toEqual(bookings);
+      expect(result.data).toEqual(bookings);
+      expect(result.nextCursor).toBeNull();
       expect(mockPrismaService.booking.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { deletedAt: null },
+        }),
+      );
+    });
+
+    it('should return nextCursor when more items exist beyond the page size', async () => {
+      const take = 2;
+      const bookings = [mockBooking(), mockBooking(), mockBooking()];
+      mockPrismaService.booking.findMany.mockResolvedValue(bookings);
+
+      const result = await service.findAll(faker.string.uuid(), Role.STUDENT, {
+        take,
+      });
+
+      expect(result.data).toHaveLength(take);
+      expect(result.nextCursor).toBe(bookings[take - 1].id);
+    });
+
+    it('should return null nextCursor when items fit within the page size', async () => {
+      const bookings = [mockBooking(), mockBooking()];
+      mockPrismaService.booking.findMany.mockResolvedValue(bookings);
+
+      const result = await service.findAll(faker.string.uuid(), Role.STUDENT, {
+        take: 20,
+      });
+
+      expect(result.nextCursor).toBeNull();
+    });
+
+    it('should pass cursor and skip to the query when cursor is provided', async () => {
+      const cursor = faker.string.uuid();
+      mockPrismaService.booking.findMany.mockResolvedValue([mockBooking()]);
+
+      await service.findAll(faker.string.uuid(), Role.STUDENT, { cursor });
+
+      expect(mockPrismaService.booking.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cursor: { id: cursor },
+          skip: 1,
         }),
       );
     });

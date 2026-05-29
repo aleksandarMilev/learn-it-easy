@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -18,6 +19,8 @@ import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { Role, type Booking } from '@prisma/client';
 import { BookingWithRelations } from './types/booking-with-relations.type';
 import { BookingWithFullRelations } from './types/booking-with-full-relations.type';
+import { CursorPaginationDto } from '../common/dto/cursor-pagination.dto';
+import type { PaginatedResult } from '../common/types/paginated-result.type';
 
 @ApiTags('bookings')
 @ApiBearerAuth()
@@ -36,9 +39,12 @@ export class BookingsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all bookings for current user' })
-  findAll(@CurrentUser() user: JwtPayload): Promise<BookingWithRelations[]> {
-    return this.service.findAll(user.sub, user.role as Role);
+  @ApiOperation({ summary: 'Get bookings for current user (cursor-paginated)' })
+  findAll(
+    @CurrentUser() user: JwtPayload,
+    @Query() query: CursorPaginationDto,
+  ): Promise<PaginatedResult<BookingWithRelations>> {
+    return this.service.findAll(user.sub, user.role as Role, query);
   }
 
   @Get(':id')

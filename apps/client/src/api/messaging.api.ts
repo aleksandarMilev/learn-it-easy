@@ -1,9 +1,13 @@
 import { api } from '@/lib/axios';
-import type { Conversation, Message } from '@/types';
+import type { Conversation, Message, PaginatedResult } from '@/types';
 
 export const messagingApi = {
-  getConversations: (): Promise<Conversation[]> =>
-    api.get<Conversation[]>('/messages/conversations').then((r) => r.data),
+  getConversations: (cursor?: string): Promise<PaginatedResult<Conversation>> =>
+    api
+      .get<PaginatedResult<Conversation>>('/messages/conversations', {
+        params: { cursor, take: 20 },
+      })
+      .then((r) => r.data),
 
   getMessages: (conversationId: string): Promise<Message[]> =>
     api.get<Message[]>(`/messages/conversations/${conversationId}`).then((r) => r.data),

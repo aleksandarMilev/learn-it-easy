@@ -14,6 +14,8 @@ export const bg = {
     no: 'Не',
     perHour: '/час',
     required: 'Задължително',
+    loadMore: 'Зареди още',
+    noMoreItems: 'Няма повече елементи',
     role: {
       student: 'Ученик',
       tutor: 'Учител',

@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { MessageSquare, GraduationCap, ChevronRight } from 'lucide-react';
+import { MessageSquare, GraduationCap, ChevronRight, ChevronDown } from 'lucide-react';
 import { messagingApi } from '@/api/messaging.api';
 import { getFullName, formatDateTime } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
@@ -11,10 +11,21 @@ export function MessagesPage() {
   const user = useAuthStore((s) => s.user);
   const { t } = useTranslation();
 
-  const { data: conversations, isLoading, isError } = useQuery({
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+  } = useInfiniteQuery({
     queryKey: ['conversations'],
-    queryFn: messagingApi.getConversations,
+    queryFn: ({ pageParam }) => messagingApi.getConversations(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
+
+  const allConversations = data?.pages.flatMap((page) => page.data) ?? [];
 
   if (isLoading) {
     return (
@@ -48,7 +59,7 @@ export function MessagesPage() {
     <div className="mx-auto max-w-2xl animate-fade-in-up space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">{t('messages.title')}</h1>
 
-      {conversations?.length === 0 ? (
+      {allConversations.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white py-24 text-center shadow-sm">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
             <MessageSquare className="h-7 w-7 text-gray-400" />
@@ -64,43 +75,64 @@ export function MessagesPage() {
           </Link>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-          {conversations?.map((conversation, index) => {
-            const other =
-              conversation.studentId === user?.id ? conversation.tutor : conversation.student;
-            const lastMessage = conversation.messages[0];
-            const isLast = index === (conversations?.length ?? 0) - 1;
+        <>
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            {allConversations.map((conversation, index) => {
+              const other =
+                conversation.studentId === user?.id
+                  ? conversation.tutor
+                  : conversation.student;
+              const lastMessage = conversation.messages[0];
+              const isLast = index === allConversations.length - 1;
 
-            return (
-              <Link
-                key={conversation.id}
-                to={`/messages/${conversation.id}`}
-                className={`flex items-center gap-4 px-6 py-4 transition-colors hover:bg-gray-50 ${
-                  isLast ? '' : 'border-b border-gray-100'
-                }`}
+              return (
+                <Link
+                  key={conversation.id}
+                  to={`/messages/${conversation.id}`}
+                  className={`flex items-center gap-4 px-6 py-4 transition-colors hover:bg-gray-50 ${
+                    isLast ? '' : 'border-b border-gray-100'
+                  }`}
+                >
+                  <Avatar profile={other.profile} size="md" />
+
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-gray-900">{getFullName(other.profile)}</p>
+                    {lastMessage && (
+                      <p className="truncate text-sm text-gray-500">{lastMessage.content}</p>
+                    )}
+                    {!lastMessage && (
+                      <p className="text-sm italic text-gray-400">{t('messages.noMessagesYet')}</p>
+                    )}
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    {lastMessage && (
+                      <p className="text-xs text-gray-400">{formatDateTime(lastMessage.createdAt)}</p>
+                    )}
+                    <ChevronRight className="h-4 w-4 text-gray-300" />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          {(hasNextPage || isFetchingNextPage) && (
+            <div className="flex justify-center">
+              <button
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
               >
-                <Avatar profile={other.profile} size="md" />
+                <ChevronDown className="h-4 w-4" />
+                {isFetchingNextPage ? t('common.loading') : t('common.loadMore')}
+              </button>
+            </div>
+          )}
 
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-gray-900">{getFullName(other.profile)}</p>
-                  {lastMessage && (
-                    <p className="truncate text-sm text-gray-500">{lastMessage.content}</p>
-                  )}
-                  {!lastMessage && (
-                    <p className="text-sm text-gray-400 italic">{t('messages.noMessagesYet')}</p>
-                  )}
-                </div>
-
-                <div className="flex shrink-0 items-center gap-2">
-                  {lastMessage && (
-                    <p className="text-xs text-gray-400">{formatDateTime(lastMessage.createdAt)}</p>
-                  )}
-                  <ChevronRight className="h-4 w-4 text-gray-300" />
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+          {!hasNextPage && allConversations.length > 0 && (
+            <p className="text-center text-xs text-gray-400">{t('common.noMoreItems')}</p>
+          )}
+        </>
       )}
     </div>
   );

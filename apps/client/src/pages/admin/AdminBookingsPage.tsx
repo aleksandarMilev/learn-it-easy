@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, ChevronDown } from 'lucide-react';
 import { adminApi } from '@/api/admin.api';
 import { formatDateTime, getFullName } from '@/lib/utils';
 import type { BookingStatus } from '@/types';
@@ -25,15 +25,25 @@ export function AdminBookingsPage() {
     { value: 'CANCELLED', label: t('bookings.status.cancelled') },
   ];
 
-  const { data: bookings, isLoading, isError } = useQuery({
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+  } = useInfiniteQuery({
     queryKey: ['admin', 'bookings'],
-    queryFn: adminApi.getAllBookings,
+    queryFn: ({ pageParam }) => adminApi.getAllBookings(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 
+  const allBookings = data?.pages.flatMap((page) => page.data) ?? [];
   const filteredBookings =
     activeFilter === 'ALL'
-      ? (bookings ?? [])
-      : (bookings?.filter((booking) => booking.status === activeFilter) ?? []);
+      ? allBookings
+      : allBookings.filter((booking) => booking.status === activeFilter);
 
   if (isLoading) {
     return (
@@ -63,7 +73,9 @@ export function AdminBookingsPage() {
         <CalendarDays className="h-6 w-6 text-gray-400" />
         <h1 className="text-2xl font-bold text-gray-900">
           {t('admin.allBookings')}{' '}
-          <span className="text-lg font-normal text-gray-400">({bookings?.length ?? 0})</span>
+          <span className="text-lg font-normal text-gray-400">
+            ({allBookings.length}{hasNextPage ? '+' : ''})
+          </span>
         </h1>
       </div>
 
@@ -126,7 +138,7 @@ export function AdminBookingsPage() {
                   <p className="text-sm font-medium text-gray-900">
                     {formatDateTime(booking.startTime)}
                   </p>
-                  <p className="text-sm text-indigo-600 font-semibold">
+                  <p className="text-sm font-semibold text-indigo-600">
                     ${booking.tutor.hourlyRate}{t('common.perHour')}
                   </p>
                 </div>
@@ -134,6 +146,23 @@ export function AdminBookingsPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {(hasNextPage || isFetchingNextPage) && (
+        <div className="flex justify-center pt-2">
+          <button
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
+          >
+            <ChevronDown className="h-4 w-4" />
+            {isFetchingNextPage ? t('common.loading') : t('common.loadMore')}
+          </button>
+        </div>
+      )}
+
+      {!hasNextPage && allBookings.length > 0 && (
+        <p className="text-center text-xs text-gray-400">{t('common.noMoreItems')}</p>
       )}
     </div>
   );

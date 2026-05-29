@@ -10,6 +10,8 @@ import { type Conversation, type Message } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ConversationWithDetails } from './types/conversation-with-details.type';
 import { MessageWithSender } from './types/message-with-sender.type';
+import { CursorPaginationDto } from '../common/dto/cursor-pagination.dto';
+import type { PaginatedResult } from '../common/types/paginated-result.type';
 
 @Injectable()
 export class MessagingService {
@@ -51,23 +53,49 @@ export class MessagingService {
     });
   }
 
-  async findConversations(userId: string): Promise<ConversationWithDetails[]> {
-    return this.prisma.conversation.findMany({
+  async findConversations(
+    userId: string,
+    query: CursorPaginationDto,
+  ): Promise<PaginatedResult<ConversationWithDetails>> {
+    const take = query.take;
+    const items = await this.prisma.conversation.findMany({
       where: {
         deletedAt: null,
         OR: [{ studentId: userId }, { tutorId: userId }],
       },
+      take: take + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
       include: {
-        student: { select: { id: true, profile: true } },
-        tutor: { select: { id: true, profile: true } },
+        student: {
+          select: {
+            id: true,
+            profile: {
+              select: { firstName: true, lastName: true, avatarUrl: true },
+            },
+          },
+        },
+        tutor: {
+          select: {
+            id: true,
+            profile: {
+              select: { firstName: true, lastName: true, avatarUrl: true },
+            },
+          },
+        },
         messages: {
           where: { deletedAt: null },
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
     });
+
+    const hasNextPage = items.length > take;
+    const data = hasNextPage ? items.slice(0, take) : items;
+    const nextCursor = hasNextPage ? (data[data.length - 1]?.id ?? null) : null;
+
+    return { data, nextCursor };
   }
 
   async findMessages(

@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -16,6 +17,8 @@ import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { type Conversation, type Message } from '@prisma/client';
 import { ConversationWithDetails } from './types/conversation-with-details.type';
 import { MessageWithSender } from './types/message-with-sender.type';
+import { CursorPaginationDto } from '../common/dto/cursor-pagination.dto';
+import type { PaginatedResult } from '../common/types/paginated-result.type';
 
 @ApiTags('messaging')
 @ApiBearerAuth()
@@ -34,11 +37,12 @@ export class MessagingController {
   }
 
   @Get('conversations')
-  @ApiOperation({ summary: 'Get all conversations for current user' })
+  @ApiOperation({ summary: 'Get conversations for current user (cursor-paginated)' })
   findConversations(
     @CurrentUser() user: JwtPayload,
-  ): Promise<ConversationWithDetails[]> {
-    return this.service.findConversations(user.sub);
+    @Query() query: CursorPaginationDto,
+  ): Promise<PaginatedResult<ConversationWithDetails>> {
+    return this.service.findConversations(user.sub, query);
   }
 
   @Get('conversations/:id')

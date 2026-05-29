@@ -101,3 +101,8 @@ export interface ApiError {
   message: string;
   statusCode: number;
 }
+
+export interface PaginatedResult<T> {
+  data: T[];
+  nextCursor: string | null;
+}

@@ -1,5 +1,5 @@
 import { api } from '@/lib/axios';
-import type { User, TutorProfile, Booking } from '@/types';
+import type { User, TutorProfile, Booking, PaginatedResult } from '@/types';
 
 export const adminApi = {
   getUsers: (): Promise<User[]> => api.get<User[]>('/users').then((r) => r.data),
@@ -9,5 +9,8 @@ export const adminApi = {
 
   deleteTutor: (tutorId: string): Promise<void> => api.delete(`/tutors/${tutorId}`),
 
-  getAllBookings: (): Promise<Booking[]> => api.get<Booking[]>('/bookings').then((r) => r.data),
+  getAllBookings: (cursor?: string): Promise<PaginatedResult<Booking>> =>
+    api
+      .get<PaginatedResult<Booking>>('/bookings', { params: { cursor, take: 20 } })
+      .then((r) => r.data),
 };

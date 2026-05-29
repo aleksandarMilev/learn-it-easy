@@ -112,19 +112,64 @@ describe('MessagingService', () => {
   });
 
   describe('findConversations', () => {
-    it('should return all conversations for a user', async () => {
+    it('should return paginated conversations for a user', async () => {
       const userId = faker.string.uuid();
       const conversations = [mockConversation(), mockConversation()];
       mockPrismaService.conversation.findMany.mockResolvedValue(conversations);
 
-      const result = await service.findConversations(userId);
+      const result = await service.findConversations(userId, {});
 
-      expect(result).toEqual(conversations);
+      expect(result.data).toEqual(conversations);
+      expect(result.nextCursor).toBeNull();
       expect(mockPrismaService.conversation.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             OR: [{ studentId: userId }, { tutorId: userId }],
           }),
+        }),
+      );
+    });
+
+    it('should return nextCursor when more conversations exist beyond the page size', async () => {
+      const take = 2;
+      const conversations = [
+        mockConversation(),
+        mockConversation(),
+        mockConversation(),
+      ];
+      mockPrismaService.conversation.findMany.mockResolvedValue(conversations);
+
+      const result = await service.findConversations(faker.string.uuid(), {
+        take,
+      });
+
+      expect(result.data).toHaveLength(take);
+      expect(result.nextCursor).toBe(conversations[take - 1].id);
+    });
+
+    it('should return null nextCursor when conversations fit within the page size', async () => {
+      const conversations = [mockConversation()];
+      mockPrismaService.conversation.findMany.mockResolvedValue(conversations);
+
+      const result = await service.findConversations(faker.string.uuid(), {
+        take: 20,
+      });
+
+      expect(result.nextCursor).toBeNull();
+    });
+
+    it('should pass cursor and skip to the query when cursor is provided', async () => {
+      const cursor = faker.string.uuid();
+      mockPrismaService.conversation.findMany.mockResolvedValue([
+        mockConversation(),
+      ]);
+
+      await service.findConversations(faker.string.uuid(), { cursor });
+
+      expect(mockPrismaService.conversation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cursor: { id: cursor },
+          skip: 1,
         }),
       );
     });

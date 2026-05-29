@@ -1,5 +1,5 @@
 import { api } from '@/lib/axios';
-import type { Booking, BookingStatus } from '@/types';
+import type { Booking, BookingStatus, PaginatedResult } from '@/types';
 
 export interface CreateBookingPayload {
   tutorId: string;
@@ -10,7 +10,12 @@ export interface CreateBookingPayload {
 }
 
 export const bookingsApi = {
-  getAll: (): Promise<Booking[]> => api.get<Booking[]>('/bookings').then((r) => r.data),
+  getAll: (cursor?: string): Promise<PaginatedResult<Booking>> =>
+    api
+      .get<PaginatedResult<Booking>>('/bookings', {
+        params: { cursor, take: 20 },
+      })
+      .then((r) => r.data),
 
   getById: (id: string): Promise<Booking> =>
     api.get<Booking>(`/bookings/${id}`).then((r) => r.data),

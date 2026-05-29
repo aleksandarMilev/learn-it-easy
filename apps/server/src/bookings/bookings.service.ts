@@ -11,6 +11,8 @@ import { BookingStatus, Prisma, Role, type Booking } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BookingWithRelations } from './types/booking-with-relations.type';
 import { BookingWithFullRelations } from './types/booking-with-full-relations.type';
+import { CursorPaginationDto } from '../common/dto/cursor-pagination.dto';
+import type { PaginatedResult } from '../common/types/paginated-result.type';
 
 const SERIALIZATION_FAILURE_CODE = 'P2034';
 
@@ -68,7 +70,18 @@ export class BookingsService {
             },
             include: {
               tutor: { select: { id: true, subjects: true, hourlyRate: true } },
-              student: { select: { id: true, profile: true } },
+              student: {
+                select: {
+                  id: true,
+                  profile: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                      avatarUrl: true,
+                    },
+                  },
+                },
+              },
             },
           });
         },
@@ -101,7 +114,12 @@ export class BookingsService {
     return booking;
   }
 
-  findAll(userId: string, role: Role): Promise<BookingWithRelations[]> {
+  async findAll(
+    userId: string,
+    role: Role,
+    query: CursorPaginationDto,
+  ): Promise<PaginatedResult<BookingWithRelations>> {
+    const take = query.take;
     const where =
       role === Role.STUDENT
         ? { studentId: userId, deletedAt: null }
@@ -109,14 +127,29 @@ export class BookingsService {
           ? { tutor: { userId }, deletedAt: null }
           : { deletedAt: null };
 
-    return this.prisma.booking.findMany({
+    const items = await this.prisma.booking.findMany({
       where,
+      take: take + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
       include: {
         tutor: { select: { id: true, subjects: true, hourlyRate: true } },
-        student: { select: { id: true, profile: true } },
+        student: {
+          select: {
+            id: true,
+            profile: {
+              select: { firstName: true, lastName: true, avatarUrl: true },
+            },
+          },
+        },
       },
-      orderBy: { startTime: 'asc' },
+      orderBy: [{ startTime: 'asc' }, { id: 'asc' }],
     });
+
+    const hasNextPage = items.length > take;
+    const data = hasNextPage ? items.slice(0, take) : items;
+    const nextCursor = hasNextPage ? (data[data.length - 1]?.id ?? null) : null;
+
+    return { data, nextCursor };
   }
 
   async findOne(
