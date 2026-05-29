@@ -39,6 +39,8 @@ model User {
   sentMessages         Message[]      @relation("SentMessages")
 
   notifications Notification[]
+
+  @@index([deletedAt])
 }
 
 model TutorProfile {
@@ -55,6 +57,8 @@ model TutorProfile {
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   availability Availability[]
   bookings     Booking[]
+
+  @@index([deletedAt])
 }
 
 model Availability {
@@ -84,6 +88,10 @@ model Booking {
   student     User         @relation("StudentBookings", fields: [studentId], references: [id])
   tutor       TutorProfile @relation(fields: [tutorId], references: [id])
   review      Review?
+
+  @@index([studentId])
+  @@index([tutorId])
+  @@index([deletedAt])
 }
 
 model Review {
@@ -96,6 +104,8 @@ model Review {
   deletedAt DateTime?
 
   booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
 }
 
 model Profile {
@@ -134,6 +144,7 @@ model Conversation {
   messages     Message[]
 
   @@unique([studentId, tutorId])
+  @@index([deletedAt])
 }
 
 model Message {
@@ -146,6 +157,9 @@ model Message {
 
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@index([conversationId])
+  @@index([deletedAt])
 }
 
 model Notification {
@@ -159,6 +173,9 @@ model Notification {
   deletedAt DateTime?
 
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([deletedAt])
 }
 
 enum NotificationType {

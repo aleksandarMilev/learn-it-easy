@@ -63,6 +63,7 @@ export class UsersService {
 
   async findAll() {
     return this.prisma.user.findMany({
+      where: { deletedAt: null },
       select: {
         id: true,
         email: true,

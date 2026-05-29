@@ -9,6 +9,7 @@ export class CorsIoAdapter extends IoAdapter {
 
   constructor(app: INestApplicationContext) {
     super(app);
+
     const configService = app.get(ConfigService<Env, true>);
     this.allowedOrigin = configService.get('FRONTEND_URL', { infer: true });
   }

@@ -86,14 +86,16 @@ describe('UsersService', () => {
   });
 
   describe('findAll', () => {
-    it('should return all users', async () => {
+    it('should return only non-deleted users', async () => {
       const users = [mockUser(), mockUser()];
       mockPrismaService.user.findMany.mockResolvedValue(users);
 
       const result = await service.findAll();
 
       expect(result).toEqual(users);
-      expect(mockPrismaService.user.findMany).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { deletedAt: null } }),
+      );
     });
   });
 
