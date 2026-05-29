@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { StarRating } from '@/components/ui/StarRating';
 import type { BookingStatus } from '@/types';
 import { useToast } from '@/store/toast.store';
+import { useConfirm } from '@/store/confirm-dialog.store';
 
 const statusClasses: Record<BookingStatus, string> = {
   PENDING: 'bg-yellow-100 text-yellow-700',
@@ -30,6 +31,7 @@ export function BookingDetailPage() {
   const queryClient = useQueryClient();
   const { isTutor, isAdmin, isStudent } = useAuth();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const { t } = useTranslation();
 
   const reviewSchema = z.object({
@@ -171,7 +173,13 @@ export function BookingDetailPage() {
                 {t('bookingDetail.confirmButton')}
               </button>
               <button
-                onClick={() => statusMutation.mutate('CANCELLED')}
+                onClick={() =>
+                  confirm({
+                    title: t('common.areYouSure'),
+                    message: t('common.cannotBeUndone'),
+                    onConfirm: () => statusMutation.mutate('CANCELLED'),
+                  })
+                }
                 disabled={statusMutation.isPending}
                 className="flex items-center gap-1.5 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
               >

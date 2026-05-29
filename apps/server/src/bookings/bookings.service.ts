@@ -11,7 +11,10 @@ import { BookingStatus, Prisma, Role, type Booking } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BookingWithRelations } from './types/booking-with-relations.type';
 import { BookingWithFullRelations } from './types/booking-with-full-relations.type';
-import { CursorPaginationDto } from '../common/dto/cursor-pagination.dto';
+import {
+  CursorPaginationDto,
+  DEFAULT_PAGE_SIZE,
+} from '../common/dto/cursor-pagination.dto';
 import type { PaginatedResult } from '../common/types/paginated-result.type';
 
 const SERIALIZATION_FAILURE_CODE = 'P2034';
@@ -119,7 +122,7 @@ export class BookingsService {
     role: Role,
     query: CursorPaginationDto,
   ): Promise<PaginatedResult<BookingWithRelations>> {
-    const take = query.take;
+    const take = query.take ?? DEFAULT_PAGE_SIZE;
     const where =
       role === Role.STUDENT
         ? { studentId: userId, deletedAt: null }

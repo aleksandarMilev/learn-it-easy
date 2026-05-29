@@ -210,7 +210,11 @@ describe('BookingsService', () => {
       const bookings = [mockBooking(), mockBooking()];
       mockPrismaService.booking.findMany.mockResolvedValue(bookings);
 
-      const result = await service.findAll(faker.string.uuid(), Role.STUDENT, {});
+      const result = await service.findAll(
+        faker.string.uuid(),
+        Role.STUDENT,
+        {},
+      );
 
       expect(result.data).toEqual(bookings);
       expect(result.nextCursor).toBeNull();
@@ -246,7 +250,7 @@ describe('BookingsService', () => {
       });
 
       expect(result.data).toHaveLength(take);
-      expect(result.nextCursor).toBe(bookings[take - 1].id);
+      expect(result.nextCursor).toBe(bookings[take - 1]!.id);
     });
 
     it('should return null nextCursor when items fit within the page size', async () => {

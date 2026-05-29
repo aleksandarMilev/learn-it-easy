@@ -16,6 +16,7 @@ export const bg = {
     required: 'Задължително',
     loadMore: 'Зареди още',
     noMoreItems: 'Няма повече елементи',
+    cannotBeUndone: 'Това действие не може да бъде отменено.',
     role: {
       student: 'Ученик',
       tutor: 'Учител',
@@ -289,5 +290,11 @@ export const bg = {
 
   errors: {
     somethingWentWrong: 'Нещо се обърка. Моля опитайте отново.',
+  },
+
+  errorBoundary: {
+    title: 'Нещо се обърка',
+    message: 'Възникна неочаквана грешка. Моля, опресни страницата.',
+    reloadButton: 'Опресни страницата',
   },
 } as const;

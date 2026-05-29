@@ -37,7 +37,9 @@ export class MessagingController {
   }
 
   @Get('conversations')
-  @ApiOperation({ summary: 'Get conversations for current user (cursor-paginated)' })
+  @ApiOperation({
+    summary: 'Get conversations for current user (cursor-paginated)',
+  })
   findConversations(
     @CurrentUser() user: JwtPayload,
     @Query() query: CursorPaginationDto,

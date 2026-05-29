@@ -17,6 +17,8 @@ import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { AdminTutorsPage } from '@/pages/admin/AdminTutorsPage';
 import { AdminBookingsPage } from '@/pages/admin/AdminBookingsPage';
 import { Layout } from '@/components/layout/Layout';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,75 +54,78 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route
-            path="/login"
-            element={
-              <GuestRoute>
-                <LoginPage />
-              </GuestRoute>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <GuestRoute>
-                <RegisterPage />
-              </GuestRoute>
-            }
-          />
-          <Route
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/tutors" element={<TutorsPage />} />
-            <Route path="/tutors/:id" element={<TutorDetailPage />} />
-            <Route path="/bookings" element={<BookingsPage />} />
-            <Route path="/bookings/:id" element={<BookingDetailPage />} />
-            <Route path="/messages" element={<MessagesPage />} />
-            <Route path="/messages/:id" element={<ConversationPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
+        <ErrorBoundary>
+          <Routes>
             <Route
-              path="/admin"
+              path="/login"
               element={
-                <AdminRoute>
-                  <AdminPage />
-                </AdminRoute>
+                <GuestRoute>
+                  <LoginPage />
+                </GuestRoute>
               }
             />
             <Route
-              path="/admin/users"
+              path="/register"
               element={
-                <AdminRoute>
-                  <AdminUsersPage />
-                </AdminRoute>
+                <GuestRoute>
+                  <RegisterPage />
+                </GuestRoute>
               }
             />
             <Route
-              path="/admin/tutors"
               element={
-                <AdminRoute>
-                  <AdminTutorsPage />
-                </AdminRoute>
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
               }
-            />
-            <Route
-              path="/admin/bookings"
-              element={
-                <AdminRoute>
-                  <AdminBookingsPage />
-                </AdminRoute>
-              }
-            />
-          </Route>
-        </Routes>
+            >
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/tutors" element={<TutorsPage />} />
+              <Route path="/tutors/:id" element={<TutorDetailPage />} />
+              <Route path="/bookings" element={<BookingsPage />} />
+              <Route path="/bookings/:id" element={<BookingDetailPage />} />
+              <Route path="/messages" element={<MessagesPage />} />
+              <Route path="/messages/:id" element={<ConversationPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <AdminPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={
+                  <AdminRoute>
+                    <AdminUsersPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/tutors"
+                element={
+                  <AdminRoute>
+                    <AdminTutorsPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/bookings"
+                element={
+                  <AdminRoute>
+                    <AdminBookingsPage />
+                  </AdminRoute>
+                }
+              />
+            </Route>
+          </Routes>
+        </ErrorBoundary>
       </BrowserRouter>
+      <ConfirmDialog />
     </QueryClientProvider>
   );
 }

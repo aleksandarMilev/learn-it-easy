@@ -16,6 +16,7 @@ export const en = {
     required: 'Required',
     loadMore: 'Load more',
     noMoreItems: 'No more items to load',
+    cannotBeUndone: 'This action cannot be undone.',
     role: {
       student: 'Student',
       tutor: 'Tutor',
@@ -289,6 +290,12 @@ export const en = {
 
   errors: {
     somethingWentWrong: 'Something went wrong. Please try again.',
+  },
+
+  errorBoundary: {
+    title: 'Something went wrong',
+    message: 'An unexpected error occurred. Please try reloading the page.',
+    reloadButton: 'Reload page',
   },
 } as const;
 

@@ -10,7 +10,10 @@ import { type Conversation, type Message } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ConversationWithDetails } from './types/conversation-with-details.type';
 import { MessageWithSender } from './types/message-with-sender.type';
-import { CursorPaginationDto } from '../common/dto/cursor-pagination.dto';
+import {
+  CursorPaginationDto,
+  DEFAULT_PAGE_SIZE,
+} from '../common/dto/cursor-pagination.dto';
 import type { PaginatedResult } from '../common/types/paginated-result.type';
 
 @Injectable()
@@ -57,7 +60,7 @@ export class MessagingService {
     userId: string,
     query: CursorPaginationDto,
   ): Promise<PaginatedResult<ConversationWithDetails>> {
-    const take = query.take;
+    const take = query.take ?? DEFAULT_PAGE_SIZE;
     const items = await this.prisma.conversation.findMany({
       where: {
         deletedAt: null,

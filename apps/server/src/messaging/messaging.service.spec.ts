@@ -144,7 +144,7 @@ describe('MessagingService', () => {
       });
 
       expect(result.data).toHaveLength(take);
-      expect(result.nextCursor).toBe(conversations[take - 1].id);
+      expect(result.nextCursor).toBe(conversations[take - 1]!.id);
     });
 
     it('should return null nextCursor when conversations fit within the page size', async () => {

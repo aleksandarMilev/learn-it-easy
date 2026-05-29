@@ -19,5 +19,5 @@ export class CursorPaginationDto {
   @IsInt()
   @Min(1)
   @Max(MAX_PAGE_SIZE)
-  take: number = DEFAULT_PAGE_SIZE;
+  take?: number;
 }

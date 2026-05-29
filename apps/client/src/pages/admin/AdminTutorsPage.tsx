@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { GraduationCap, CheckCircle, Trash2 } from 'lucide-react';
@@ -6,12 +5,14 @@ import { adminApi } from '@/api/admin.api';
 import { tutorsApi } from '@/api/tutors.api';
 import { getFullName } from '@/lib/utils';
 import { useToast } from '@/store/toast.store';
+import { useConfirm } from '@/store/confirm-dialog.store';
 import type { TutorProfile } from '@/types';
 
 export function AdminTutorsPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
 
   const { data: tutors, isLoading, isError } = useQuery({
     queryKey: ['tutors'],
@@ -35,6 +36,22 @@ export function AdminTutorsPage() {
     },
     onError: () => toast.error(t('admin.tutorRemoveFailed')),
   });
+
+  const handleApprove = (tutorId: string) => {
+    confirm({
+      title: t('common.areYouSure'),
+      message: t('common.cannotBeUndone'),
+      onConfirm: () => approveMutation.mutate(tutorId),
+    });
+  };
+
+  const handleDelete = (tutorId: string) => {
+    confirm({
+      title: t('common.areYouSure'),
+      message: t('common.cannotBeUndone'),
+      onConfirm: () => deleteMutation.mutate(tutorId),
+    });
+  };
 
   if (isLoading) {
     return (
@@ -87,7 +104,7 @@ export function AdminTutorsPage() {
                 tutor={tutor}
                 actions={
                   <button
-                    onClick={() => approveMutation.mutate(tutor.id)}
+                    onClick={() => handleApprove(tutor.id)}
                     disabled={approveMutation.isPending}
                     className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
                   >
@@ -113,10 +130,14 @@ export function AdminTutorsPage() {
                 key={tutor.id}
                 tutor={tutor}
                 actions={
-                  <DeleteButton
-                    onConfirm={() => deleteMutation.mutate(tutor.id)}
-                    isPending={deleteMutation.isPending}
-                  />
+                  <button
+                    onClick={() => handleDelete(tutor.id)}
+                    disabled={deleteMutation.isPending}
+                    className="flex items-center gap-1.5 rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {t('common.delete')}
+                  </button>
                 }
               />
             ))}
@@ -148,7 +169,7 @@ function TutorCard({ tutor, actions }: TutorCardProps) {
             {tutor.isApproved ? t('admin.approved') : t('admin.pending')}
           </span>
         </div>
-        <p className="text-sm text-indigo-600 font-semibold">
+        <p className="text-sm font-semibold text-indigo-600">
           ${tutor.hourlyRate}{t('common.perHour')}
         </p>
         <div className="flex flex-wrap gap-1.5">
@@ -164,49 +185,5 @@ function TutorCard({ tutor, actions }: TutorCardProps) {
       </div>
       <div className="shrink-0">{actions}</div>
     </div>
-  );
-}
-
-interface DeleteButtonProps {
-  onConfirm: () => void;
-  isPending: boolean;
-}
-
-function DeleteButton({ onConfirm, isPending }: DeleteButtonProps) {
-  const [isConfirming, setIsConfirming] = useState(false);
-  const { t } = useTranslation();
-
-  if (isConfirming) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-600">{t('common.areYouSure')}</span>
-        <button
-          onClick={() => {
-            onConfirm();
-            setIsConfirming(false);
-          }}
-          disabled={isPending}
-          className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
-        >
-          {t('common.yes')}
-        </button>
-        <button
-          onClick={() => setIsConfirming(false)}
-          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
-        >
-          {t('common.no')}
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <button
-      onClick={() => setIsConfirming(true)}
-      className="flex items-center gap-1.5 rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-    >
-      <Trash2 className="h-4 w-4" />
-      {t('common.delete')}
-    </button>
   );
 }

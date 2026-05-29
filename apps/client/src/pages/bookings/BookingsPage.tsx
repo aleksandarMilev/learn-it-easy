@@ -6,6 +6,7 @@ import { bookingsApi } from '@/api/bookings.api';
 import { formatDateTime, getFullName } from '@/lib/utils';
 import type { BookingStatus } from '@/types';
 import { useToast } from '@/store/toast.store';
+import { useConfirm } from '@/store/confirm-dialog.store';
 
 const statusClasses: Record<BookingStatus, string> = {
   PENDING: 'bg-yellow-100 text-yellow-700',
@@ -17,6 +18,7 @@ const statusClasses: Record<BookingStatus, string> = {
 export function BookingsPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const { t } = useTranslation();
 
   const {
@@ -131,7 +133,13 @@ export function BookingsPage() {
                     </span>
                     {booking.status === 'PENDING' && (
                       <button
-                        onClick={() => cancelMutation.mutate(booking.id)}
+                        onClick={() =>
+                          confirm({
+                            title: t('common.areYouSure'),
+                            message: t('common.cannotBeUndone'),
+                            onConfirm: () => cancelMutation.mutate(booking.id),
+                          })
+                        }
                         disabled={cancelMutation.isPending}
                         className="flex items-center gap-1 text-xs text-red-500 transition-colors hover:text-red-700 disabled:opacity-50"
                       >
