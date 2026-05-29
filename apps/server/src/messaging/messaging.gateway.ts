@@ -16,7 +16,7 @@ import { UsePipes, ValidationPipe } from '@nestjs/common';
 import { SendMessageDto } from './dto/send-message.dto';
 import type { Env } from '../config/env.validation';
 
-@WebSocketGateway({ cors: { origin: '*' } })
+@WebSocketGateway()
 export class MessagingGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
@@ -54,6 +54,19 @@ export class MessagingGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() conversationId: string,
   ): Promise<void> {
+    const userId = client.data.userId as string;
+    const isParticipant = await this.messagingService.isConversationParticipant(
+      conversationId,
+      userId,
+    );
+
+    if (!isParticipant) {
+      client.emit('error', { message: 'Access denied' });
+      await client.leave(`conversation:${conversationId}`);
+
+      return;
+    }
+
     await client.join(`conversation:${conversationId}`);
   }
 

@@ -208,6 +208,53 @@ describe('MessagingService', () => {
     });
   });
 
+  describe('isConversationParticipant', () => {
+    it('should return true when the user is the student', async () => {
+      const userId = faker.string.uuid();
+      const conversation = mockConversation({ studentId: userId });
+      mockPrismaService.conversation.findFirst.mockResolvedValue(conversation);
+
+      const result = await service.isConversationParticipant(
+        conversation.id,
+        userId,
+      );
+
+      expect(result).toBe(true);
+      expect(mockPrismaService.conversation.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: conversation.id,
+            OR: [{ studentId: userId }, { tutorId: userId }],
+          }),
+        }),
+      );
+    });
+
+    it('should return true when the user is the tutor', async () => {
+      const userId = faker.string.uuid();
+      const conversation = mockConversation({ tutorId: userId });
+      mockPrismaService.conversation.findFirst.mockResolvedValue(conversation);
+
+      const result = await service.isConversationParticipant(
+        conversation.id,
+        userId,
+      );
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false when the user is not a participant', async () => {
+      mockPrismaService.conversation.findFirst.mockResolvedValue(null);
+
+      const result = await service.isConversationParticipant(
+        faker.string.uuid(),
+        faker.string.uuid(),
+      );
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('softDeleteMessage', () => {
     it('should soft delete a message by sender', async () => {
       const senderId = faker.string.uuid();

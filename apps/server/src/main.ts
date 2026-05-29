@@ -3,11 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { CorsIoAdapter } from './io-adapter';
 import type { Env } from './config/env.validation';
 
 void (async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
+  app.useWebSocketAdapter(new CorsIoAdapter(app));
   app.setGlobalPrefix('api/v1').useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

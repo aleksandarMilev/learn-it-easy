@@ -145,6 +145,21 @@ export class MessagingService {
     return message;
   }
 
+  async isConversationParticipant(
+    conversationId: string,
+    userId: string,
+  ): Promise<boolean> {
+    const conversation = await this.prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        deletedAt: null,
+        OR: [{ studentId: userId }, { tutorId: userId }],
+      },
+    });
+
+    return conversation !== null;
+  }
+
   async softDeleteMessage(messageId: string, userId: string): Promise<Message> {
     const message = await this.prisma.message.findFirst({
       where: { id: messageId, deletedAt: null },
