@@ -7,10 +7,12 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateBookingDto } from './dto/create-booking.dto';
 import type { UpdateBookingDto } from './dto/update-booking.dto';
-import { BookingStatus, Role, type Booking } from '@prisma/client';
+import { BookingStatus, Prisma, Role, type Booking } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BookingWithRelations } from './types/booking-with-relations.type';
 import { BookingWithFullRelations } from './types/booking-with-full-relations.type';
+
+const SERIALIZATION_FAILURE_CODE = 'P2034';
 
 @Injectable()
 export class BookingsService {
@@ -43,22 +45,47 @@ export class BookingsService {
       throw new BadRequestException('Cannot book in the past');
     }
 
-    await this.checkConflict(dto.tutorId, startTime, endTime);
+    let booking: BookingWithRelations;
 
-    const booking = await this.prisma.booking.create({
-      data: {
-        studentId,
-        tutorId: dto.tutorId,
-        startTime,
-        endTime,
-        subject: dto.subject,
-        notes: dto.notes,
-      },
-      include: {
-        tutor: { select: { id: true, subjects: true, hourlyRate: true } },
-        student: { select: { id: true, profile: true } },
-      },
-    });
+    try {
+      booking = await this.prisma.$transaction(
+        async (transaction) => {
+          await this.#checkConflict(
+            transaction,
+            dto.tutorId,
+            startTime,
+            endTime,
+          );
+
+          return transaction.booking.create({
+            data: {
+              studentId,
+              tutorId: dto.tutorId,
+              startTime,
+              endTime,
+              subject: dto.subject,
+              notes: dto.notes,
+            },
+            include: {
+              tutor: { select: { id: true, subjects: true, hourlyRate: true } },
+              student: { select: { id: true, profile: true } },
+            },
+          });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === SERIALIZATION_FAILURE_CODE
+      ) {
+        throw new BadRequestException(
+          'Tutor is not available for the selected time slot',
+        );
+      }
+
+      throw error;
+    }
 
     const studentProfile = booking.student.profile;
     const studentName = studentProfile
@@ -210,13 +237,14 @@ export class BookingsService {
     });
   }
 
-  private async checkConflict(
+  async #checkConflict(
+    transaction: Pick<PrismaService, 'booking'>,
     tutorId: string,
     startTime: Date,
     endTime: Date,
     excludeBookingId?: string,
   ): Promise<void> {
-    const conflict = await this.prisma.booking.findFirst({
+    const conflict = await transaction.booking.findFirst({
       where: {
         tutorId,
         deletedAt: null,

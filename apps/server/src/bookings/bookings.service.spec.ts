@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { BookingStatus, Role } from '@prisma/client';
+import { BookingStatus, Prisma, Role } from '@prisma/client';
 import { faker } from '@faker-js/faker';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -62,6 +62,7 @@ const mockPrismaService = {
     findFirst: jest.fn(),
     update: jest.fn(),
   },
+  $transaction: jest.fn(),
 };
 
 const mockNotificationsService = {
@@ -84,6 +85,13 @@ describe('BookingsService', () => {
 
     service = module.get<BookingsService>(BookingsService);
     jest.clearAllMocks();
+
+    mockPrismaService.$transaction.mockImplementation(
+      (
+        callback: (tx: typeof mockPrismaService) => Promise<unknown>,
+        _options?: unknown,
+      ) => callback(mockPrismaService),
+    );
   });
 
   describe('create', () => {
@@ -147,6 +155,53 @@ describe('BookingsService', () => {
       await expect(service.create(studentId, dto)).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it('should use Serializable isolation level for the booking transaction', async () => {
+      const booking = mockBooking();
+      mockPrismaService.tutorProfile.findFirst.mockResolvedValue(mockTutor());
+      mockPrismaService.booking.findFirst.mockResolvedValue(null);
+      mockPrismaService.booking.create.mockResolvedValue(booking);
+
+      await service.create(studentId, dto);
+
+      expect(mockPrismaService.$transaction).toHaveBeenCalledWith(
+        expect.any(Function),
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    });
+
+    it('should throw BadRequestException when a serialization failure occurs (concurrent booking)', async () => {
+      mockPrismaService.tutorProfile.findFirst.mockResolvedValue(mockTutor());
+
+      const serializationError = new Prisma.PrismaClientKnownRequestError(
+        'Transaction failed due to a write conflict or a deadlock.',
+        { code: 'P2034', clientVersion: '6.0.0' },
+      );
+      mockPrismaService.$transaction.mockRejectedValue(serializationError);
+
+      const promise = service.create(studentId, dto);
+
+      await expect(promise).rejects.toThrow(BadRequestException);
+      await expect(promise).rejects.toThrow(
+        'Tutor is not available for the selected time slot',
+      );
+    });
+
+    it('should not send a notification when booking creation fails inside the transaction', async () => {
+      mockPrismaService.tutorProfile.findFirst.mockResolvedValue(mockTutor());
+      mockPrismaService.booking.findFirst.mockResolvedValue(null);
+      mockPrismaService.booking.create.mockRejectedValue(
+        new Error('DB connection error'),
+      );
+
+      await expect(service.create(studentId, dto)).rejects.toThrow(
+        'DB connection error',
+      );
+
+      expect(
+        mockNotificationsService.notifyBookingCreated,
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -214,6 +269,7 @@ describe('BookingsService', () => {
       const booking = mockBooking({
         tutor: { ...mockTutor(), userId: tutorUserId },
       });
+
       mockPrismaService.booking.findFirst.mockResolvedValue(booking);
       mockPrismaService.booking.update.mockResolvedValue({
         ...booking,
