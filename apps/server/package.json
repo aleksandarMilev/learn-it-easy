@@ -18,7 +18,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "pretest:e2e": "docker compose --env-file ../../.env.dev -f ../../docker-compose.dev.yml up -d postgres redis && dotenv -e ../../.env.ci -- node ../../scripts/wait-for-db.js && dotenv -e ../../.env.ci -- prisma migrate deploy",
+    "pretest:e2e": "node ../../scripts/setup-e2e.js",
     "test:e2e": "cross-env NODE_ENV=test jest --config ./test/jest-e2e.json",
     "prisma:migrate": "dotenv -e ../../.env.dev -- prisma migrate dev",
     "prisma:generate": "dotenv -e ../../.env.dev -- prisma generate",
