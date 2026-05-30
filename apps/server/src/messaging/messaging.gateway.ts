@@ -81,6 +81,6 @@ export class MessagingGateway
 
     this.server
       .to(`conversation:${dto.conversationId}`)
-      .emit('receiveMessage', message);
+      .emit('receiveMessage', { ...message, nonce: dto.nonce ?? null });
   }
 }

@@ -162,6 +162,9 @@ export const en = {
     backToMessages: 'Back to messages',
     noMessagesYet: 'No messages yet',
     browseTutors: 'Browse tutors',
+    sending: 'Sending…',
+    sendFailed: 'Failed to send',
+    retry: 'Retry',
   },
 
   notifications: {

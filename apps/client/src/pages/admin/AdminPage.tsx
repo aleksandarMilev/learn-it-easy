@@ -15,7 +15,7 @@ export function AdminPage() {
 
   const { data: bookings } = useQuery({
     queryKey: ['admin', 'bookings'],
-    queryFn: adminApi.getAllBookings,
+    queryFn: () => adminApi.getAllBookings(),
   });
 
   const { data: tutors } = useQuery({
@@ -48,7 +48,7 @@ export function AdminPage() {
         <StatCard
           icon={<CalendarDays className="h-6 w-6 text-indigo-600" />}
           label={t('admin.totalBookings')}
-          value={bookings?.length ?? '—'}
+          value={bookings?.data.length ?? '—'}
           href="/admin/bookings"
           bgClass="bg-indigo-50"
         />

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ConfirmDialog } from './ConfirmDialog';
-import { useConfirmDialogStore } from '@/store/confirm-dialog.store';
+import { useConfirmDialogStore, type ConfirmDialogOptions } from '@/store/confirm-dialog.store';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -11,7 +11,7 @@ vi.mock('lucide-react', () => ({
   AlertTriangle: () => <svg data-testid="alert-icon" />,
 }));
 
-const openDialog = (overrides: Partial<Parameters<typeof useConfirmDialogStore.getState>['open']> = {}) => {
+const openDialog = (overrides: Partial<ConfirmDialogOptions> = {}) => {
   useConfirmDialogStore.setState({
     isOpen: true,
     options: {

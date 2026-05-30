@@ -83,6 +83,13 @@ export interface Message {
   sender: { id: string; profile: Profile | null };
 }
 
+export type MessageStatus = 'confirmed' | 'pending' | 'failed';
+
+export interface OptimisticMessage extends Message {
+  status: MessageStatus;
+  nonce?: string;
+}
+
 export interface Notification {
   id: string;
   type: NotificationType;

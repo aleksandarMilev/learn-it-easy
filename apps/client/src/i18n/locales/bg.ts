@@ -162,6 +162,9 @@ export const bg = {
     backToMessages: 'Назад към съобщенията',
     noMessagesYet: 'Все още няма съобщения',
     browseTutors: 'Разгледай учители',
+    sending: 'Изпращане…',
+    sendFailed: 'Неуспешно изпращане',
+    retry: 'Опитай отново',
   },
 
   notifications: {

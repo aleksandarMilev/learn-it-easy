@@ -1,4 +1,10 @@
-import { IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class SendMessageDto {
   @IsUUID()
@@ -8,4 +14,8 @@ export class SendMessageDto {
   @MinLength(1)
   @MaxLength(2000)
   content!: string;
+
+  @IsOptional()
+  @IsString()
+  nonce?: string;
 }

@@ -250,7 +250,7 @@ describe('BookingsService', () => {
       });
 
       expect(result.data).toHaveLength(take);
-      expect(result.nextCursor).toBe(bookings[take - 1]!.id);
+      expect(result.nextCursor).toBe(bookings[take - 1]?.id);
     });
 
     it('should return null nextCursor when items fit within the page size', async () => {

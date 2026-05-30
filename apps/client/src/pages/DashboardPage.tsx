@@ -31,7 +31,7 @@ export function DashboardPage() {
 
   const { data: bookings } = useQuery({
     queryKey: ['bookings'],
-    queryFn: bookingsApi.getAll,
+    queryFn: () => bookingsApi.getAll(),
   });
 
   const { data: unreadCount } = useQuery({
@@ -40,7 +40,9 @@ export function DashboardPage() {
   });
 
   const upcomingBookings =
-    bookings?.filter((booking) => booking.status === 'PENDING' || booking.status === 'CONFIRMED') ?? [];
+    bookings?.data.filter(
+      (booking) => booking.status === 'PENDING' || booking.status === 'CONFIRMED',
+    ) ?? [];
 
   const roleKey = user?.role?.toLowerCase() as 'student' | 'tutor' | 'admin' | undefined;
   const roleName = roleKey ? t(`common.role.${roleKey}`) : '—';
