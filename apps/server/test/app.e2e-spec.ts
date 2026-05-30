@@ -4,6 +4,7 @@ import request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { faker } from '@faker-js/faker';
 import { Role } from '@prisma/client';
+import { response } from 'express';
 
 describe('App (e2e)', () => {
   let app: INestApplication;
@@ -35,8 +36,8 @@ describe('App (e2e)', () => {
       return request(app.getHttpServer())
         .get('/api/v1/health')
         .expect(200)
-        .expect((res) => {
-          expect(res.body.status).toBe('ok');
+        .expect((response) => {
+          expect(response.body.status).toBe('ok');
         });
     });
   });
@@ -58,11 +59,11 @@ describe('App (e2e)', () => {
         .post('/api/v1/auth/register')
         .send(user)
         .expect(201)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('accessToken');
-          expect(res.body).toHaveProperty('refreshToken');
-          accessToken = res.body.accessToken;
-          refreshToken = res.body.refreshToken;
+        .expect((response) => {
+          expect(response.body).toHaveProperty('accessToken');
+          expect(response.body).toHaveProperty('refreshToken');
+          accessToken = response.body.accessToken;
+          refreshToken = response.body.refreshToken;
         });
     });
 
@@ -78,9 +79,9 @@ describe('App (e2e)', () => {
         .post('/api/v1/auth/login')
         .send({ email: user.email, password: user.password })
         .expect(201)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('accessToken');
-          expect(res.body).toHaveProperty('refreshToken');
+        .expect((response) => {
+          expect(response.body).toHaveProperty('accessToken');
+          expect(response.body).toHaveProperty('refreshToken');
         });
     });
 
@@ -96,10 +97,11 @@ describe('App (e2e)', () => {
         .post('/api/v1/auth/refresh')
         .send({ refreshToken })
         .expect(201)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('accessToken');
-          expect(res.body).toHaveProperty('refreshToken');
-          refreshToken = res.body.refreshToken;
+        .expect((response) => {
+          expect(response.body).toHaveProperty('accessToken');
+          expect(response.body).toHaveProperty('refreshToken');
+
+          refreshToken = response.body.refreshToken;
         });
     });
 
@@ -108,9 +110,9 @@ describe('App (e2e)', () => {
         .get('/api/v1/users/me')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('email', user.email);
-          expect(res.body).toHaveProperty('profile');
+        .expect((response) => {
+          expect(response.body).toHaveProperty('email', user.email);
+          expect(response.body).toHaveProperty('profile');
         });
     });
 
@@ -136,7 +138,7 @@ describe('App (e2e)', () => {
     });
 
     it('/api/v1/bookings (POST) - should fail with invalid data', async () => {
-      const res = await request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send({
           email: faker.internet.email(),
@@ -148,7 +150,7 @@ describe('App (e2e)', () => {
 
       return request(app.getHttpServer())
         .post('/api/v1/bookings')
-        .set('Authorization', `Bearer ${res.body.accessToken}`)
+        .set('Authorization', `Bearer ${response.body.accessToken}`)
         .send({})
         .expect(400);
     });
@@ -174,26 +176,25 @@ describe('App (e2e)', () => {
     let studentToken: string;
     let tutorToken: string;
     let tutorProfileId: string;
-    let bookingId: string;
 
     beforeAll(async () => {
-      const studentRes = await request(app.getHttpServer())
+      const studentResponse = await request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send(student);
-      studentToken = studentRes.body.accessToken;
+      studentToken = studentResponse.body.accessToken;
 
-      const tutorRes = await request(app.getHttpServer())
+      const tutorResponse = await request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send(tutor);
-      tutorToken = tutorRes.body.accessToken;
+      tutorToken = tutorResponse.body.accessToken;
     });
 
     it('/api/v1/tutors (GET) - should return empty list', () => {
       return request(app.getHttpServer())
         .get('/api/v1/tutors')
         .expect(200)
-        .expect((res) => {
-          expect(Array.isArray(res.body)).toBe(true);
+        .expect((response) => {
+          expect(Array.isArray(response.body)).toBe(true);
         });
     });
 
@@ -207,10 +208,10 @@ describe('App (e2e)', () => {
           bio: 'Experienced tutor',
         })
         .expect(201)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('id');
-          expect(res.body.isApproved).toBe(false);
-          tutorProfileId = res.body.id;
+        .expect((response) => {
+          expect(response.body).toHaveProperty('id');
+          expect(response.body.isApproved).toBe(false);
+          tutorProfileId = response.body.id;
         });
     });
 
@@ -235,9 +236,9 @@ describe('App (e2e)', () => {
         .set('Authorization', `Bearer ${tutorToken}`)
         .send({ dayOfWeek: 1, startTime: '09:00', endTime: '17:00' })
         .expect(201)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('id');
-          expect(res.body.dayOfWeek).toBe(1);
+        .expect((response) => {
+          expect(response.body).toHaveProperty('id');
+          expect(response.body.dayOfWeek).toBe(1);
         });
     });
 
@@ -245,8 +246,8 @@ describe('App (e2e)', () => {
       return request(app.getHttpServer())
         .get(`/api/v1/tutors/${tutorProfileId}/availability`)
         .expect(200)
-        .expect((res) => {
-          expect(Array.isArray(res.body)).toBe(true);
+        .expect((response) => {
+          expect(Array.isArray(response.body)).toBe(true);
         });
     });
 
@@ -280,8 +281,8 @@ describe('App (e2e)', () => {
         .get('/api/v1/bookings')
         .set('Authorization', `Bearer ${studentToken}`)
         .expect(200)
-        .expect((res) => {
-          expect(Array.isArray(res.body)).toBe(true);
+        .expect((response) => {
+          expect(Array.isArray(response.body.data)).toBe(true);
         });
     });
   });
@@ -292,7 +293,7 @@ describe('App (e2e)', () => {
     });
 
     it('/api/v1/reviews (POST) - should fail with invalid data', async () => {
-      const res = await request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send({
           email: faker.internet.email(),
@@ -304,7 +305,7 @@ describe('App (e2e)', () => {
 
       return request(app.getHttpServer())
         .post('/api/v1/reviews')
-        .set('Authorization', `Bearer ${res.body.accessToken}`)
+        .set('Authorization', `Bearer ${response.body.accessToken}`)
         .send({})
         .expect(400);
     });
@@ -330,7 +331,7 @@ describe('App (e2e)', () => {
     });
 
     it('/api/v1/messages/conversations (GET) - should return empty list', async () => {
-      const res = await request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send({
           email: faker.internet.email(),
@@ -342,15 +343,15 @@ describe('App (e2e)', () => {
 
       return request(app.getHttpServer())
         .get('/api/v1/messages/conversations')
-        .set('Authorization', `Bearer ${res.body.accessToken}`)
+        .set('Authorization', `Bearer ${response.body.accessToken}`)
         .expect(200)
-        .expect((r) => {
-          expect(Array.isArray(r.body)).toBe(true);
+        .expect((response) => {
+          expect(Array.isArray(response.body.data)).toBe(true);
         });
     });
 
     it('/api/v1/messages/conversation (POST) - should fail with invalid data', async () => {
-      const res = await request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send({
           email: faker.internet.email(),
@@ -362,7 +363,7 @@ describe('App (e2e)', () => {
 
       return request(app.getHttpServer())
         .post('/api/v1/messages/conversation')
-        .set('Authorization', `Bearer ${res.body.accessToken}`)
+        .set('Authorization', `Bearer ${response.body.accessToken}`)
         .send({})
         .expect(400);
     });
@@ -376,7 +377,7 @@ describe('App (e2e)', () => {
     });
 
     it('/api/v1/notifications (GET) - should return empty list', async () => {
-      const res = await request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send({
           email: faker.internet.email(),
@@ -388,15 +389,15 @@ describe('App (e2e)', () => {
 
       return request(app.getHttpServer())
         .get('/api/v1/notifications')
-        .set('Authorization', `Bearer ${res.body.accessToken}`)
+        .set('Authorization', `Bearer ${response.body.accessToken}`)
         .expect(200)
-        .expect((r) => {
-          expect(Array.isArray(r.body)).toBe(true);
+        .expect((response) => {
+          expect(Array.isArray(response.body)).toBe(true);
         });
     });
 
     it('/api/v1/notifications/unread-count (GET) - should return 0', async () => {
-      const res = await request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send({
           email: faker.internet.email(),
@@ -408,10 +409,10 @@ describe('App (e2e)', () => {
 
       return request(app.getHttpServer())
         .get('/api/v1/notifications/unread-count')
-        .set('Authorization', `Bearer ${res.body.accessToken}`)
+        .set('Authorization', `Bearer ${response.body.accessToken}`)
         .expect(200)
-        .expect((r) => {
-          expect(r.body).toHaveProperty('count', 0);
+        .expect((response) => {
+          expect(response.body).toHaveProperty('count', 0);
         });
     });
   });
