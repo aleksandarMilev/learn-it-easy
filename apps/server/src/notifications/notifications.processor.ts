@@ -19,7 +19,7 @@ export class NotificationsProcessor extends WorkerHost {
   async process(job: Job): Promise<void> {
     switch (job.name) {
       case NotificationJobs.CREATE_IN_APP:
-        await this.handleCreateInApp(job.data as CreateNotificationDto);
+        await this.#handleCreateInApp(job.data as CreateNotificationDto);
         break;
       case NotificationJobs.SEND_EMAIL:
         await this.#handleSendEmail(job.data as SendEmailDto);
@@ -29,7 +29,7 @@ export class NotificationsProcessor extends WorkerHost {
     }
   }
 
-  private async handleCreateInApp(data: CreateNotificationDto): Promise<void> {
+  async #handleCreateInApp(data: CreateNotificationDto): Promise<void> {
     await this.prisma.notification.create({
       data: {
         userId: data.userId,

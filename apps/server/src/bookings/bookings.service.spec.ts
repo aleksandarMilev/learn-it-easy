@@ -10,6 +10,10 @@ import { BookingStatus, Prisma, Role } from '@prisma/client';
 import { faker } from '@faker-js/faker';
 import { NotificationsService } from '../notifications/notifications.service';
 
+const ONE_HOUR_MS = 1_000 * 60 * 60;
+const ONE_DAY_MS = ONE_HOUR_MS * 24;
+const SESSION_DURATION_MS = ONE_HOUR_MS;
+
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const mockTutor = () => ({
   id: faker.string.uuid(),
@@ -32,8 +36,8 @@ const mockBooking = (overrides = {}) => ({
   id: faker.string.uuid(),
   studentId: faker.string.uuid(),
   tutorId: faker.string.uuid(),
-  startTime: new Date(Date.now() + 1000 * 60 * 60 * 24),
-  endTime: new Date(Date.now() + 1000 * 60 * 60 * 25),
+  startTime: new Date(Date.now() + ONE_DAY_MS),
+  endTime: new Date(Date.now() + ONE_DAY_MS + SESSION_DURATION_MS),
   status: BookingStatus.PENDING,
   subject: 'Mathematics',
   notes: null,
@@ -98,8 +102,10 @@ describe('BookingsService', () => {
     const studentId = faker.string.uuid();
     const dto = {
       tutorId: faker.string.uuid(),
-      startTime: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
-      endTime: new Date(Date.now() + 1000 * 60 * 60 * 25).toISOString(),
+      startTime: new Date(Date.now() + ONE_DAY_MS).toISOString(),
+      endTime: new Date(
+        Date.now() + ONE_DAY_MS + SESSION_DURATION_MS,
+      ).toISOString(),
       subject: 'Mathematics',
       notes: undefined,
     };
@@ -130,8 +136,10 @@ describe('BookingsService', () => {
       await expect(
         service.create(studentId, {
           ...dto,
-          startTime: new Date(Date.now() + 1000 * 60 * 60 * 25).toISOString(),
-          endTime: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
+          startTime: new Date(
+            Date.now() + ONE_DAY_MS + SESSION_DURATION_MS,
+          ).toISOString(),
+          endTime: new Date(Date.now() + ONE_DAY_MS).toISOString(),
         }),
       ).rejects.toThrow(BadRequestException);
     });
@@ -142,8 +150,10 @@ describe('BookingsService', () => {
       await expect(
         service.create(studentId, {
           ...dto,
-          startTime: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-          endTime: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
+          startTime: new Date(Date.now() - ONE_DAY_MS).toISOString(),
+          endTime: new Date(
+            Date.now() - ONE_DAY_MS + SESSION_DURATION_MS,
+          ).toISOString(),
         }),
       ).rejects.toThrow(BadRequestException);
     });
@@ -202,6 +212,66 @@ describe('BookingsService', () => {
       expect(
         mockNotificationsService.notifyBookingCreated,
       ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('conflict detection', () => {
+    const studentId = faker.string.uuid();
+    const dto = {
+      tutorId: faker.string.uuid(),
+      startTime: new Date(Date.now() + ONE_DAY_MS).toISOString(),
+      endTime: new Date(
+        Date.now() + ONE_DAY_MS + SESSION_DURATION_MS,
+      ).toISOString(),
+      subject: 'Mathematics',
+      notes: undefined,
+    };
+
+    it('should throw BadRequestException when a new booking overlaps with an existing CONFIRMED booking for the same tutor', async () => {
+      mockPrismaService.tutorProfile.findFirst.mockResolvedValue(mockTutor());
+      mockPrismaService.booking.findFirst.mockResolvedValue(
+        mockBooking({ status: BookingStatus.CONFIRMED }),
+      );
+
+      await expect(service.create(studentId, dto)).rejects.toThrow(
+        BadRequestException,
+      );
+
+      expect(mockPrismaService.booking.create).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when a new booking overlaps with an existing PENDING booking', async () => {
+      mockPrismaService.tutorProfile.findFirst.mockResolvedValue(mockTutor());
+      mockPrismaService.booking.findFirst.mockResolvedValue(
+        mockBooking({ status: BookingStatus.PENDING }),
+      );
+
+      await expect(service.create(studentId, dto)).rejects.toThrow(
+        BadRequestException,
+      );
+
+      expect(mockPrismaService.booking.create).not.toHaveBeenCalled();
+    });
+
+    it('should use correct overlap detection: startTime < existingEnd AND endTime > existingStart', async () => {
+      const startTime = new Date(dto.startTime);
+      const endTime = new Date(dto.endTime);
+      const booking = mockBooking();
+
+      mockPrismaService.tutorProfile.findFirst.mockResolvedValue(mockTutor());
+      mockPrismaService.booking.findFirst.mockResolvedValue(null);
+      mockPrismaService.booking.create.mockResolvedValue(booking);
+
+      await service.create(studentId, dto);
+
+      expect(mockPrismaService.booking.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [{ startTime: { lt: endTime }, endTime: { gt: startTime } }],
+          }),
+        }),
+      );
+      expect(mockPrismaService.booking.create).toHaveBeenCalledTimes(1);
     });
   });
 

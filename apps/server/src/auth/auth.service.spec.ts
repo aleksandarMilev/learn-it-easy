@@ -190,6 +190,61 @@ describe('AuthService', () => {
     });
   });
 
+  describe('refresh token security', () => {
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    const validStored = () => ({
+      token: 'valid-rotation-token',
+      expiresAt: new Date(Date.now() + 1_000 * 60 * 60),
+      user: {
+        id: faker.string.uuid(),
+        email: faker.internet.email(),
+        role: Role.STUDENT,
+      },
+    });
+
+    it('should delete the used token after a successful refresh to prevent reuse (token rotation)', async () => {
+      const stored = validStored();
+      mockPrismaService.refreshToken.findUnique.mockResolvedValue(stored);
+      mockPrismaService.refreshToken.delete.mockResolvedValue({});
+      mockPrismaService.refreshToken.create.mockResolvedValue({});
+
+      await service.refresh(stored.token);
+
+      expect(mockPrismaService.refreshToken.delete).toHaveBeenCalledWith({
+        where: { token: stored.token },
+      });
+      expect(mockPrismaService.refreshToken.delete).toHaveBeenCalledTimes(1);
+    });
+
+    it('should NOT call delete when the refresh token is not found (already revoked or never issued)', async () => {
+      mockPrismaService.refreshToken.findUnique.mockResolvedValue(null);
+
+      await expect(service.refresh('revoked-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+
+      expect(mockPrismaService.refreshToken.delete).not.toHaveBeenCalled();
+    });
+
+    it('should NOT call delete when the refresh token is expired', async () => {
+      mockPrismaService.refreshToken.findUnique.mockResolvedValue({
+        token: 'expired-token',
+        expiresAt: new Date(Date.now() - 1_000),
+        user: {
+          id: faker.string.uuid(),
+          email: faker.internet.email(),
+          role: Role.STUDENT,
+        },
+      });
+
+      await expect(service.refresh('expired-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+
+      expect(mockPrismaService.refreshToken.delete).not.toHaveBeenCalled();
+    });
+  });
+
   describe('logout', () => {
     it('should delete the refresh token', async () => {
       mockPrismaService.refreshToken.deleteMany.mockResolvedValue({});

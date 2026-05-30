@@ -168,6 +168,51 @@ describe('TutorsService', () => {
     });
   });
 
+  describe('approveTutor authorization', () => {
+    it('should call prisma.tutorProfile.update with isApproved: true when approving a pending tutor', async () => {
+      const tutor = mockTutorProfile({ isApproved: false });
+      const approved = { ...tutor, isApproved: true };
+
+      mockPrismaService.tutorProfile.findFirst.mockResolvedValue(tutor);
+      mockPrismaService.tutorProfile.update.mockResolvedValue(approved);
+
+      await service.approve(tutor.id);
+
+      expect(mockPrismaService.tutorProfile.update).toHaveBeenCalledWith({
+        where: { id: tutor.id },
+        data: { isApproved: true },
+      });
+    });
+
+    it('should return the updated profile with isApproved set to true', async () => {
+      const tutor = mockTutorProfile({ isApproved: false });
+      const approved = { ...tutor, isApproved: true };
+
+      mockPrismaService.tutorProfile.findFirst.mockResolvedValue(tutor);
+      mockPrismaService.tutorProfile.update.mockResolvedValue(approved);
+
+      const result = await service.approve(tutor.id);
+
+      expect(result.isApproved).toBe(true);
+    });
+
+    /*
+     * Role enforcement (ADMIN only) is handled by RolesGuard at the controller
+     * level via @Roles(Role.ADMIN) on the approve endpoint, not inside this service.
+     * The guard-level test is covered by the existing e2e test:
+     *   "POST /api/v1/tutors/:id/approve - should fail for non-admin" (app.e2e-spec.ts)
+     */
+    it('should throw NotFoundException when trying to approve a tutor profile that does not exist', async () => {
+      mockPrismaService.tutorProfile.findFirst.mockResolvedValue(null);
+
+      await expect(service.approve(faker.string.uuid())).rejects.toThrow(
+        NotFoundException,
+      );
+
+      expect(mockPrismaService.tutorProfile.update).not.toHaveBeenCalled();
+    });
+  });
+
   describe('createAvailability', () => {
     const dto = { dayOfWeek: 1, startTime: '09:00', endTime: '17:00' };
 
